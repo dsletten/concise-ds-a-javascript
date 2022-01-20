@@ -145,6 +145,61 @@ Node.reverse = function(list) {
     return reverse(list, null);
 };
 
+Node.contains = function(node, obj) {
+    if ( node === null ) {
+        return false;
+    } else if ( node.first() === obj ) {
+        return true;
+    } else {
+        return Node.contains(node.rest(), obj);
+    }
+};
+
+Node.nthCdr = function(node, i) {
+    if ( node === null ) {
+        return null;
+    } else if ( i === 0 ) {
+        return node;
+    } else {
+        return Node.nthCdr(node.rest(), i-1);
+    }
+};
+
+Node.nth = function(node, i) {
+    if ( node === null ) {
+        return null;
+    } else if ( i === 0 ) {
+        return node.first();
+    } else {
+        return Node.nth(node.rest(), i-1);
+    }
+};
+
+Node.setNth = function(node, i, obj) {
+    if ( node !== null ) {
+        if ( i === 0 ) {
+            node.setFirst(obj);
+        } else {
+            Node.setNth(node.rest(), i-1, obj);
+        }
+    }
+};
+
+Node.subseq = function(node, i, n) {
+    let head = Node.nthCdr(node, i);
+    let result = []
+    for (let j = 0; j < n; j++) {
+        if ( head === null ) {
+            return result;
+        } else {
+            result.push(head.first());
+            head = head.rest();
+        }
+    }
+
+    return result;
+};
+
 //
 //     Collection
 //     

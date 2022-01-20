@@ -77,7 +77,13 @@ List.prototype.listIterator = function(start) {
 };
 
 List.prototype.add = function(...objs) {
-    throw new Error("List does not implement add().");
+    if ( objs.length !== 0 ) {
+        this.doAdd(...objs);
+    }
+};
+
+List.prototype.doAdd = function(...objs) {
+    throw new Error("List does not implement doAdd().");
 };
 
 List.prototype.extendList = function(i, obj) {
@@ -205,13 +211,13 @@ MutableList.prototype.countModification = function() {
     this.modificationCount++;
 };
 
-MutableList.prototype.add = function(...objs) {
+MutableList.prototype.doAdd = function(...objs) {
     this.countModification();
-    this.doAdd(...objs);
+    this.doDoAdd(...objs);
 };
 
-MutableList.prototype.doAdd = function(...objs) {
-    throw new Error("MutableList does not implement doAdd().");
+MutableList.prototype.doDoAdd = function(...objs) {
+    throw new Error("MutableList does not implement doDoAdd().");
 };
 
 MutableList.prototype.doInsert = function(i, obj) {
@@ -230,6 +236,153 @@ MutableList.prototype.doDelete = function(i) {
 
 MutableList.prototype.doDoDelete = function(i) {
     throw new Error("MutableList does not implement doDoDelete().");
+};
+
+//
+//    LinkedList
+// 
+function LinkedList(fillElt) {
+    List.call(this, fillElt);
+}
+
+LinkedList.prototype = Object.create(List.prototype);
+LinkedList.prototype.constructor = LinkedList;
+Object.defineProperty(LinkedList.prototype, "constructor", {enumerable: false, configurable: false});
+
+LinkedList.prototype.insertBefore = function(node, obj) {
+    if ( node === null ) {
+        throw new Error("Invalid node.");
+    } else {
+        this.doInsertBefore(node, obj);
+    }
+};
+
+LinkedList.prototype.doInsertBefore = function(node, obj) {
+    throw new Error("LinkedList does not implement doInsertBefore().");
+};
+
+LinkedList.prototype.insertAfter = function(node, obj) {
+    if ( node === null ) {
+        throw new Error("Invalid node.");
+    } else {
+        this.doInsertAfter(node, obj);
+    }
+};
+
+LinkedList.prototype.doInsertAfter = function(node, obj) {
+    throw new Error("LinkedList does not implement doInsertAfter().");
+};
+
+LinkedList.prototype.deleteNode = function(doomed) {
+    if ( doomed === null ) {
+        throw new Error("Invalid node.");
+    } else {
+        return this.doDeleteNode(doomed);
+    }
+};
+
+LinkedList.prototype.doDeleteNode = function(doomed) {
+    throw new Error("LinkedList does not implement doDeleteNode().");
+};
+
+LinkedList.prototype.deleteChild = function(parent) {
+    if ( parent === null ) {
+        throw new Error("Invalid node.");
+    } else {
+        return this.doDeleteChild(parent);
+    }
+};
+
+LinkedList.prototype.doDeleteChild = function(parent) {
+    throw new Error("LinkedList does not implement doDeleteChild().");
+};
+
+//
+//    MutableLinkedList
+//
+function MutableLinkedList(fillElt) {
+    LinkedList.call(this, fillElt);
+    this.modificationCount = 0;
+}
+
+MutableLinkedList.prototype = Object.create(LinkedList.prototype);
+MutableLinkedList.prototype.constructor = MutableLinkedList;
+Object.defineProperty(MutableLinkedList.prototype, "constructor", {enumerable: false, configurable: false});
+
+MutableLinkedList.prototype.countModification = function() {
+    this.modificationCount++;
+};
+
+MutableLinkedList.prototype.clear = function() {
+    this.countModification();
+    this.doClear();
+};
+
+MutableLinkedList.prototype.doClear = function() {
+    throw new Error("MutableLinkedList does not implement doClear().");
+};
+
+MutableLinkedList.prototype.doAdd = function(...objs) {
+    this.countModification();
+    this.doDoAdd(...objs);
+};
+
+MutableLinkedList.prototype.doDoAdd = function(...objs) {
+    throw new Error("MutableLinkedList does not implement doDoAdd().");
+};
+
+MutableLinkedList.prototype.doInsert = function(i, obj) {
+    this.countModification();
+    this.doDoInsert(i, obj);
+};
+
+MutableLinkedList.prototype.doDoInsert = function(i, obj) {
+    throw new Error("MutableLinkedList does not implement doDoInsert().");
+};
+
+MutableLinkedList.prototype.doDelete = function(i) {
+    this.countModification();
+    return this.doDoDelete(i);
+};
+
+MutableLinkedList.prototype.doDoDelete = function(i) {
+    throw new Error("MutableLinkedList does not implement doDoDelete().");
+};
+
+MutableLinkedList.prototype.doInsertBefore = function(node, obj) {
+    this.countModification();
+    this.doDoInsertBefore(node, obj);
+};
+
+MutableLinkedList.prototype.doDoInsertBefore = function(node, obj) {
+    throw new Error("MutableLinkedList does not implement doDoInsertBefore().");
+};
+
+MutableLinkedList.prototype.doInsertAfter = function(node, obj) {
+    this.countModification();
+    this.doDoInsertAfter(node, obj);
+};
+
+MutableLinkedList.prototype.doDoInsertAfter = function(node, obj) {
+    throw new Error("MutableLinkedList does not implement doDoInsertAfter().");
+};
+
+MutableLinkedList.prototype.doDeleteNode = function(doomed) {
+    this.countModification();
+    return this.doDoDeleteNode(doomed);
+};
+
+MutableLinkedList.prototype.doDoDeleteNode = function(doomed) {
+    throw new Error("MutableLinkedList does not implement doDoDeleteNode().");
+};
+
+MutableLinkedList.prototype.doDeleteChild = function(parent) {
+    this.countModification();
+    return this.doDoDeleteChild(parent);
+};
+
+MutableLinkedList.prototype.doDoDeleteChild = function(parent) {
+    throw new Error("MutableLinkedList does not implement doDoDeleteChild().");
 };
 
 //
@@ -272,7 +425,7 @@ ArrayList.prototype.contains = function(obj) {
     }
 };
 
-ArrayList.prototype.doAdd = function(...objs) {
+ArrayList.prototype.doDoAdd = function(...objs) {
     this.store = this.store.concat(objs);
 };
 
@@ -336,3 +489,182 @@ RandomAccessListIterator.prototype.doNext = function() {
 RandomAccessListIterator.prototype.doIsDone = function() {
     return this.cursor === this.collection.size(); // >=
 };
+
+//
+//    SinglyLinkedList
+// 
+function SinglyLinkedList(fillElt) {
+    MutableList.call(this, fillElt);
+    this.front = null;
+    this.rear = null;
+    this.count = 0;
+}
+
+SinglyLinkedList.prototype = Object.create(MutableLinkedList.prototype);
+SinglyLinkedList.prototype.constructor = SinglyLinkedList;
+Object.defineProperty(SinglyLinkedList.prototype, "constructor", {enumerable: false, configurable: false});
+
+SinglyLinkedList.prototype.size = function() {
+    return this.count;
+};
+
+SinglyLinkedList.prototype.isEmpty = function() {
+    return this.front === null;
+};
+
+SinglyLinkedList.prototype.clear = function() {
+    this.front = null;
+    this.rear = null;
+    this.count = 0;
+};    
+
+SinglyLinkedList.prototype.iterator = function() {
+    return new SinglyLinkedListIterator(this);
+};
+
+
+// ;;; ??
+// (defmethod list-iterator ((l singly-linked-list-x) &optional (start 0))
+//   (make-instance 'singly-linked-list-list-iterator :list l :start start))
+
+SinglyLinkedList.prototype.contains = function(obj) {
+    return Node.contains(this.front, obj);
+};
+
+SinglyLinkedList.prototype.doDoAdd = function(...objs) {
+    function addNodes(self, ...objs) { // ????
+        for (let i = 0; i < objs.length; i++) {
+            let node = new Node(objs[i], null);
+            self.rear.setRest(node);
+            self.rear = node;
+        }
+
+        self.count += objs.length;
+    }
+
+    if ( this.isEmpty() ) {
+        this.rear = this.front = new Node(objs[0], null);
+        this.count = 1;
+        addNodes(this, ...objs.slice(1));
+    } else {
+        addNodes(this, ...objs);
+    }
+};
+
+SinglyLinkedList.prototype.doDoInsert = function(i, obj) {
+    let node = Node.nthCdr(this.front, i);
+    node.spliceBefore(obj);
+
+    if ( node === this.rear ) {
+        this.rear = this.rear.rest();
+    }
+
+    this.count++;
+};
+
+SinglyLinkedList.prototype.doDoInsertBefore = function(node, obj) {
+    node.spliceBefore(obj);
+
+    if ( node === this.rear ) {
+        this.rear = this.rear.rest();
+    }
+
+    this.count++;
+};
+
+SinglyLinkedList.prototype.doDoInsertAfter = function(node, obj) {
+    node.spliceAfter(obj);
+
+    if ( node === this.rear ) {
+        this.rear = this.rear.rest();
+    }
+
+    this.count++;
+};
+
+SinglyLinkedList.prototype.doDoDelete = function(i) {
+    if ( i === 0 ) {
+        let result = this.front.first();
+        this.front = this.front.rest();
+
+        if ( this.front === null ) {
+            this.rear = null;
+        }
+
+        this.count--;
+        return result;
+    } else {
+        let parent = Node.nthCdr(this.front, i-1);
+        let result = parent.exciseChild();
+
+        if ( parent.rest() === null ) {
+            this.rear = parent;
+        }
+
+        this.count--;
+        return result;
+    }
+};
+
+SinglyLinkedList.prototype.doDoDeleteNode = function(doomed) {
+    if ( doomed === this.front ) {
+        let result = this.front.first();
+        this.front = this.front.rest();
+
+        if ( this.front === null ) {
+            this.rear = null;
+        }
+
+        this.count--;
+        return result;
+    } else {
+        let result = doomed.exciseNode();
+
+        if ( doomed.rest() === null ) {
+            this.rear = doomed;
+        }
+
+        this.count--;
+        return result;
+    }
+};
+
+SinglyLinkedList.prototype.doDoDeleteChild = function(parent) {
+    let result = parent.exciseChild();
+
+    if ( parent.rest() === null ) {
+        this.rear = parent;
+    }
+
+    this.count--;
+    return result;
+};
+
+SinglyLinkedList.prototype.doGet = function(i) {
+    return Node.nth(this.front, i);
+};
+
+SinglyLinkedList.prototype.doSet = function(i, obj) {
+    Node.setNth(this.front, i, obj);
+};
+
+SinglyLinkedList.prototype.index = function(obj) {
+    function nodeIndex(node, i) {
+        if ( node === null ) {
+            return null;
+        } else if ( node.first() === obj) {
+            return i;
+        } else {
+            return nodeIndex(node.rest(), i+1);
+        }
+    }
+
+    return nodeIndex(this.front, 0);
+};
+
+SinglyLinkedList.prototype.doSlice = function(i, n) {
+    let sll = new SinglyLinkedList(this.fillElt);
+    sll.add(...Node.subseq(this.front, Math.min(i, this.count), Math.min(i+n, this.count)));
+    return sll;
+};
+    
