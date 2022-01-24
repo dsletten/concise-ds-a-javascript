@@ -145,13 +145,14 @@ Node.reverse = function(list) {
     return reverse(list, null);
 };
 
-Node.contains = function(node, obj) {
+Node.contains = function(node, obj, test = (item, elt) => item === elt) {
     if ( node === null ) {
-        return false;
-    } else if ( node.first() === obj ) {
-        return true;
+        return null;
+//    } else if ( node.first() === obj ) {
+    } else if ( test(obj, node.first()) ) {
+        return node.first();
     } else {
-        return Node.contains(node.rest(), obj);
+        return Node.contains(node.rest(), obj, test);
     }
 };
 
@@ -185,10 +186,10 @@ Node.setNth = function(node, i, obj) {
     }
 };
 
-Node.subseq = function(node, i, n) {
-    let head = Node.nthCdr(node, i);
+Node.subseq = function(node, start, end) {
+    let head = Node.nthCdr(node, start);
     let result = []
-    for (let j = 0; j < n; j++) {
+    for (let i = start; i < end; i++) {
         if ( head === null ) {
             return result;
         } else {
@@ -219,7 +220,7 @@ Collection.prototype.iterator = function() {
 //     - Check type?
 //     - Equality test?
 //     
-Collection.prototype.contains = function(obj) {
+Collection.prototype.contains = function(obj, test) {
     throw new Error("Collection does not implement contains().");
 };
 

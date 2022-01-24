@@ -29,48 +29,73 @@
 //////////////////////////////////////////////////////////////////////////////
 "use strict";
 
+function mod(number, divisor) {
+    let rem = number % divisor;
+
+    if ( rem !== 0  && (divisor < 0 ? number > 0 : number < 0) ) {
+        return rem + divisor;
+    } else {
+        return rem;
+    }
+}
+
+
 //
 //     List
 //     
-function List(fillElt) {
-    if ( fillElt === undefined ) {
-        this.fillElt = null;
-    } else {
-        this.fillElt = fillElt;
-    }
+function List(fillElt = null) {
+    this.fillElt = fillElt;
 }
 
 List.prototype = Object.create(Collection.prototype);
 List.prototype.constructor = List;
 Object.defineProperty(List.prototype, "constructor", {enumerable: false, configurable: false});
 
-// (defmethod print-object ((l list) stream)
-//   (print-unreadable-object (l stream :type t)
-//     (format stream "(")
-//     (loop with i = (iterator l)
-//           until (done i)
-//           do (format stream "~A" (current i))
-//              (next i)
-//              (unless (done i)
-//                (format stream " ")))
-//     (format stream ")")))
+List.prototype.toString = function() {
+    let result = "(";
+    let i = this.iterator();
 
-// (defmethod equals ((l1 list) (l2 list) &key (test #'eql))
-//   (if (= (size l1) (size l2))
-//       (do ((i1 (iterator l1))
-//            (i2 (iterator l2)))
-//           ((and (done i1) (done i2)) t)
-//         (unless (funcall test (current i1) (current i2))
-//           (return nil))
-//         (next i1)
-//         (next i2))
-//       nil))
+    while ( !i.isDone() ) {
+        result += i.current();
+        i.next();
+        if ( !i.isDone() ) {
+            result += " ";
+        }
+    }
 
-// (defmethod each ((l list) op)
-//   (let ((i (iterator l)))
-//     (loop until (done i)
-//           do (funcall op (current i))
-//              (next i))))
+    result += ")";
+
+    return result;
+};
+
+List.prototype.equals = function(list, test = (x, y) => x === y) {
+    if ( this.size() === list.size() ) {
+        let i1 = this.iterator();
+        let i2 = list.iterator();
+
+        while ( !(i1.isDone()  &&  i2.isDone()) ) {
+//            if ( i1.current() !== i2.current() ) {  // Test?!
+            if ( !test(i1.current(), i2.current()) ) {
+                return false;
+            }
+            i1.next();
+            i2.next();
+        }
+
+        return true;
+    } else {
+        return false;
+    }
+};
+
+List.prototype.each = function(op) {
+    let i = this.iterator();
+
+    while ( !i.isDone() ) {
+        op.call(null, i.current());
+        i.next();
+    }
+};
 
 List.prototype.listIterator = function(start) {
     throw new Error("List does not implement listIterator().");
@@ -78,11 +103,11 @@ List.prototype.listIterator = function(start) {
 
 List.prototype.add = function(...objs) {
     if ( objs.length !== 0 ) {
-        this.doAdd(...objs);
+        this.doAdd(objs);
     }
 };
 
-List.prototype.doAdd = function(...objs) {
+List.prototype.doAdd = function(objs) {
     throw new Error("List does not implement doAdd().");
 };
 
@@ -162,8 +187,7 @@ List.prototype.doSet = function(i) {
     throw new Error("List does not implement doSet().");
 };
 
-//   Type, test?
-List.prototype.index = function(obj) {
+List.prototype.index = function(obj, test) {
     throw new Error("List does not implement index().");
 };
 
@@ -211,12 +235,12 @@ MutableList.prototype.countModification = function() {
     this.modificationCount++;
 };
 
-MutableList.prototype.doAdd = function(...objs) {
+MutableList.prototype.doAdd = function(objs) {
     this.countModification();
-    this.doDoAdd(...objs);
+    this.doDoAdd(objs);
 };
 
-MutableList.prototype.doDoAdd = function(...objs) {
+MutableList.prototype.doDoAdd = function(objs) {
     throw new Error("MutableList does not implement doDoAdd().");
 };
 
@@ -250,7 +274,9 @@ LinkedList.prototype.constructor = LinkedList;
 Object.defineProperty(LinkedList.prototype, "constructor", {enumerable: false, configurable: false});
 
 LinkedList.prototype.insertBefore = function(node, obj) {
-    if ( node === null ) {
+    if ( this.isEmpty() ) {
+        throw new Error("List is empty.");
+    } else if ( node === null ) {
         throw new Error("Invalid node.");
     } else {
         this.doInsertBefore(node, obj);
@@ -262,7 +288,9 @@ LinkedList.prototype.doInsertBefore = function(node, obj) {
 };
 
 LinkedList.prototype.insertAfter = function(node, obj) {
-    if ( node === null ) {
+    if ( this.isEmpty() ) {
+        throw new Error("List is empty.");
+    } else if ( node === null ) {
         throw new Error("Invalid node.");
     } else {
         this.doInsertAfter(node, obj);
@@ -274,7 +302,9 @@ LinkedList.prototype.doInsertAfter = function(node, obj) {
 };
 
 LinkedList.prototype.deleteNode = function(doomed) {
-    if ( doomed === null ) {
+    if ( this.isEmpty() ) {
+        throw new Error("List is empty.");
+    } else if ( doomed === null ) {
         throw new Error("Invalid node.");
     } else {
         return this.doDeleteNode(doomed);
@@ -286,7 +316,9 @@ LinkedList.prototype.doDeleteNode = function(doomed) {
 };
 
 LinkedList.prototype.deleteChild = function(parent) {
-    if ( parent === null ) {
+    if ( this.isEmpty() ) {
+        throw new Error("List is empty.");
+    } else if ( parent === null ) {
         throw new Error("Invalid node.");
     } else {
         return this.doDeleteChild(parent);
@@ -322,12 +354,12 @@ MutableLinkedList.prototype.doClear = function() {
     throw new Error("MutableLinkedList does not implement doClear().");
 };
 
-MutableLinkedList.prototype.doAdd = function(...objs) {
+MutableLinkedList.prototype.doAdd = function(objs) {
     this.countModification();
-    this.doDoAdd(...objs);
+    this.doDoAdd(objs);
 };
 
-MutableLinkedList.prototype.doDoAdd = function(...objs) {
+MutableLinkedList.prototype.doDoAdd = function(objs) {
     throw new Error("MutableLinkedList does not implement doDoAdd().");
 };
 
@@ -417,15 +449,11 @@ ArrayList.prototype.doClear = function() {
     this.store = [];
 };
 
-ArrayList.prototype.contains = function(obj) {
-    if ( this.store.find(x => x === obj) === undefined ) {
-        return false;
-    } else {
-        return obj;
-    }
+ArrayList.prototype.contains = function(obj, test = (item, elt) => item === elt) {
+    return this.store.find((elt) => test(obj, elt))  ||  null;
 };
 
-ArrayList.prototype.doDoAdd = function(...objs) {
+ArrayList.prototype.doDoAdd = function(objs) {
     this.store = this.store.concat(objs);
 };
 
@@ -445,8 +473,8 @@ ArrayList.prototype.doSet = function(i, obj) {
     this.store[i] = obj;
 };
 
-ArrayList.prototype.index = function(obj) {
-    return this.store.findIndex(x => x === obj);
+ArrayList.prototype.index = function(obj, test = (item, elt) => item === elt) {
+    return this.store.findIndex((elt) => test(obj, elt));
 };
 
 ArrayList.prototype.doSlice = function(i, n) {
@@ -494,7 +522,7 @@ RandomAccessListIterator.prototype.doIsDone = function() {
 //    SinglyLinkedList
 // 
 function SinglyLinkedList(fillElt) {
-    MutableList.call(this, fillElt);
+    MutableLinkedList.call(this, fillElt);
     this.front = null;
     this.rear = null;
     this.count = 0;
@@ -512,7 +540,7 @@ SinglyLinkedList.prototype.isEmpty = function() {
     return this.front === null;
 };
 
-SinglyLinkedList.prototype.clear = function() {
+SinglyLinkedList.prototype.doClear = function() {
     this.front = null;
     this.rear = null;
     this.count = 0;
@@ -527,12 +555,12 @@ SinglyLinkedList.prototype.iterator = function() {
 // (defmethod list-iterator ((l singly-linked-list-x) &optional (start 0))
 //   (make-instance 'singly-linked-list-list-iterator :list l :start start))
 
-SinglyLinkedList.prototype.contains = function(obj) {
-    return Node.contains(this.front, obj);
+SinglyLinkedList.prototype.contains = function(obj, test = (item, elt) => item === elt) {
+    return Node.contains(this.front, obj, test);
 };
 
-SinglyLinkedList.prototype.doDoAdd = function(...objs) {
-    function addNodes(self, ...objs) { // ????
+SinglyLinkedList.prototype.doDoAdd = function(objs) {
+    function addNodes(self, objs) { // ????
         for (let i = 0; i < objs.length; i++) {
             let node = new Node(objs[i], null);
             self.rear.setRest(node);
@@ -545,9 +573,9 @@ SinglyLinkedList.prototype.doDoAdd = function(...objs) {
     if ( this.isEmpty() ) {
         this.rear = this.front = new Node(objs[0], null);
         this.count = 1;
-        addNodes(this, ...objs.slice(1));
+        addNodes(this, objs.slice(1));
     } else {
-        addNodes(this, ...objs);
+        addNodes(this, objs);
     }
 };
 
@@ -648,11 +676,12 @@ SinglyLinkedList.prototype.doSet = function(i, obj) {
     Node.setNth(this.front, i, obj);
 };
 
-SinglyLinkedList.prototype.index = function(obj) {
+SinglyLinkedList.prototype.index = function(obj, test = (item, elt) => item === elt) {
     function nodeIndex(node, i) {
         if ( node === null ) {
             return null;
-        } else if ( node.first() === obj) {
+//        } else if ( node.first() === obj) {
+        } else if ( test(obj, node.first()) ) {
             return i;
         } else {
             return nodeIndex(node.rest(), i+1);
@@ -668,3 +697,591 @@ SinglyLinkedList.prototype.doSlice = function(i, n) {
     return sll;
 };
     
+//
+//     SinglyLinkedListIterator
+//
+function SinglyLinkedListIterator(collection) {
+    MutableCollectionIterator.call(this, collection);
+    this.cursor = collection.front;
+};
+
+SinglyLinkedListIterator.prototype = Object.create(MutableCollectionIterator.prototype);
+SinglyLinkedListIterator.prototype.constructor = SinglyLinkedListIterator;
+Object.defineProperty(SinglyLinkedListIterator.prototype, "constructor", {enumerable: false, configurable: false});
+
+SinglyLinkedListIterator.prototype.doDoCurrent = function() {
+    return this.cursor.first();
+};
+
+SinglyLinkedListIterator.prototype.doIsDone = function() {
+    return this.cursor === null;
+};
+
+SinglyLinkedListIterator.prototype.doNext = function() {
+    if ( this.isDone() ) {
+        return null;
+    } else {
+        this.cursor = this.cursor.rest();
+        
+        if ( this.isDone() ) {
+            return null;
+        } else {
+            return this.current();
+        }
+    }
+};
+
+//
+//     Dcons
+//
+function Dcons(content) {
+    this.content = content;
+    this.previous = null;
+    this.next = null;
+}
+
+Dcons.prototype.getContent = function() {
+    return this.content;
+};
+
+Dcons.prototype.setContent = function(obj) {
+    return this.content = obj;
+};
+
+Dcons.prototype.getPrevious = function() {
+    return this.previous;
+};
+
+Dcons.prototype.setPrevious = function(node) {
+    return this.previous = node;
+};
+
+Dcons.prototype.getNext = function() {
+    return this.next;
+};
+
+Dcons.prototype.setNext = function(node) {
+    return this.next = node;
+};
+
+Dcons.prototype.link = function(node) {
+    this.setNext(node);
+    node.setPrevious(this);
+};
+
+Dcons.prototype.toString = function() {
+    function printPrevious(node) {
+        if ( node.getPrevious() === null ) {
+            return "∅ ← ";
+        } else if ( node === node.getPrevious() ) {
+            return "↻ ";
+        } else {
+            return node.getPrevious().getContent() + " ← ";
+        }
+    }
+
+    function printNext(node) {
+        if ( node.getNext() === null ) {
+            return " → ∅";
+        } else if ( node === node.getNext() ) {
+            return " ↺";
+        } else {
+            return " → " + node.getNext().getContent();
+        }
+    }
+
+    return printPrevious(this) + this.getContent() + printNext(this);
+};
+
+Dcons.prototype.spliceBefore = function(obj) {
+    let newDcons = new Dcons(obj);
+    this.getPrevious().link(newDcons);
+    newDcons.link(this);
+};
+
+Dcons.prototype.spliceAfter = function(obj) {
+    let newDcons = new Dcons(obj);
+    newDcons.link(this.getNext());
+    this.link(newDcons);
+};
+
+Dcons.prototype.exciseNode = function() {
+    if ( this === this.getNext() ) {
+        throw new Error("Cannot delete sole node.");
+    } else {
+        this.getPrevious().link(this.getNext());
+    }
+
+    return this.getContent();
+};
+
+Dcons.prototype.exciseChild = function() {
+    let child = this.getNext();
+
+    if ( this === child ) {
+        throw new Error("Parent must have child node");
+    } else {
+        this.link(child.getNext());
+    }
+
+    return child.getContent();
+};
+
+//
+//     Dcursor
+//
+function Dcursor(list) {
+    this.list = list;
+    this.node = this.list.store; // ??
+    this.index = 0;
+}
+
+Dcursor.prototype.isInitialized = function() {
+    return this.node !== null;
+};
+
+Dcursor.prototype.reset = function() {
+    this.node = this.list.store;
+    this.index = 0;
+};
+
+Dcursor.prototype.atStart = function() {
+    return !this.isInitialized() || this.index === 0;
+};
+
+Dcursor.prototype.atEnd = function() {
+    return !this.isInitialized() || this.index === this.size() - 1;
+};
+
+Dcursor.prototype.advance = function(step = 1) {
+    if ( !this.isInitialized() ) {
+        throw new Error("Cursor has not been initialized");
+    } else {
+        for (let i = 0; i < step; i++) {
+            this.index++;
+            this.node = this.node.getNext();
+        }
+//        this.index = this.index % this.list.size();
+        this.index = mod(this.index, this.list.size());
+    }
+};
+
+Dcursor.prototype.rewind = function(step = 1) {
+    if ( !this.isInitialized() ) {
+        throw new Error("Cursor has not been initialized");
+    } else {
+        for (let i = 0; i < step; i++) {
+            this.index--;
+            this.node = this.node.getPrevious();
+        }
+//        this.index = this.index % this.list.size(); // Wrong for negative index!!! % is REM not MOD!!
+        this.index = mod(this.index, this.list.size());
+    }
+};
+
+//
+//    This can allow DCURSOR to get out of sync!
+//    
+Dcursor.prototype.bump = function() {
+    if ( !this.isInitialized() ) {
+        throw new Error("Cursor has not been initialized");
+    } else {
+        this.node = this.node.getNext();
+    }
+};
+
+//
+//     DoublyLinkedList
+//
+function DoublyLinkedList(fillElt) {
+    MutableLinkedList.call(this, fillElt);
+    this.store = null;
+    this.count = 0;
+    this.cursor = new Dcursor(this);
+}
+
+DoublyLinkedList.prototype = Object.create(MutableLinkedList.prototype);
+DoublyLinkedList.prototype.constructor = DoublyLinkedList;
+Object.defineProperty(DoublyLinkedList.prototype, "constructor", {enumerable: false, configurable: false});
+
+DoublyLinkedList.prototype.size = function() {
+    return this.count;
+};
+
+DoublyLinkedList.prototype.isEmpty = function() {
+    return this.store === null;
+};
+
+//
+//     Break all of the links to prevent memory leak!
+//     
+DoublyLinkedList.prototype.doClear = function() {
+    let dcons = this.store;
+    for (let i = 0; i < this.size(); i++) {
+        dcons.setPrevious(null);
+        dcons = dcons.getNext();
+    }
+
+    this.store.setNext(null);
+    this.store = null;
+    this.count = 0;
+    this.cursor.reset();
+};
+
+DoublyLinkedList.prototype.iterator = function() {
+    return new DoublyLinkedListIterator(this);
+};
+
+// (defmethod list-iterator ((l doubly-linked-list) &optional (start 0))
+//   (make-instance 'doubly-linked-list-list-iterator :list l :start start))
+
+DoublyLinkedList.prototype.contains = function(obj, test = (item, elt) => item === elt) {
+    let count = this.count;
+//    function findObject(dcons, i, count) {
+    function findObject(dcons, i) {
+        if ( i === count ) {
+            return null;
+//        } else if ( obj === dcons.getContent() ) {
+        } else if ( test(obj, dcons.getContent()) ) {
+            return dcons.getContent();
+        } else {
+//            return findObject(dcons.getNext(), i + 1, count); // !!!!!!!!!!!!!!!
+            return findObject(dcons.getNext(), i + 1);
+        }
+    }
+
+//    return findObject(this.store, 0, this.count);
+    return findObject(this.store, 0);
+};
+
+DoublyLinkedList.prototype.doDoAdd = function(objs) {
+    function addNodes(head, start, objs) {
+        let dcons = start;
+        for (let i = 0; i < objs.length; i++) {
+            dcons.link(new Dcons(objs[i]));
+            dcons = dcons.getNext();
+        }
+
+        dcons.link(head);
+    }
+
+    let dcons = new Dcons(objs[0]);
+    
+    if ( this.isEmpty() ) {
+        this.store = dcons;
+    } else {
+        let tail = this.store.getPrevious();
+        tail.link(dcons);
+    }
+
+    addNodes(this.store, dcons, objs.slice(1));
+    this.count += objs.length;
+
+    if ( !this.cursor.isInitialized() ) {
+        this.cursor.reset();
+    }
+};
+
+DoublyLinkedList.prototype.nthDcons = function(i) {
+    if ( i < 0  ||  i >= this.size() ) {
+        throw new Error(`Invalid index: ${i}`);
+    } else if ( this.isEmpty() ) {
+        throw new Error("List is empty");
+    } else if ( i === 0 ) {
+        return this.store;
+    } else if ( i === this.cursor.index ) {
+        return this.cursor.node;
+    } else if ( i < this.cursor.index / 2 ) {
+        this.cursor.reset();
+        this.cursor.advance(i);
+        return this.cursor.node;
+    } else if ( i < this.cursor.index ) {
+        this.cursor.rewind(this.cursor.index - i);
+        return this.cursor.node;
+    } else if ( i <= (this.count + this.cursor.index) / 2 ) {
+        this.cursor.advance(i - this.cursor.index);
+        return this.cursor.node;
+    } else {
+        this.cursor.reset();
+        this.cursor.rewind(this.count - i);
+        return this.cursor.node;
+    }
+};
+
+function isBetweenInclusive(i, low, high) {
+    return low <= i  &&  i <= high;
+}
+
+DoublyLinkedList.prototype.doDoInsert = function(i, obj) {
+    this.nthDcons(i).spliceBefore(obj);
+
+    if ( i === 0 ) {
+        this.store = this.store.getPrevious();
+    }
+
+    this.count++;
+
+    if ( !this.cursor.isInitialized()  ||
+         isBetweenInclusive(i, 0, this.cursor.index)  ||
+         (i < 0  &&  isBetweenInclusive(i+this.count, 0, this.cursor.index)) ) {
+        this.cursor.reset();
+    }
+};
+
+DoublyLinkedList.prototype.doDoInsertBefore = function(node, obj) {
+    node.spliceBefore(obj)
+
+    if ( node === this.store ) {
+        this.store = this.store.getPrevious();
+    }
+
+    this.count++;
+    this.cursor.index++;
+};
+
+DoublyLinkedList.prototype.doDoInsertAfter = function(node, obj) {
+    node.spliceAfter(obj)
+
+    this.count++;
+};
+
+DoublyLinkedList.prototype.doDoDelete = function(i) {
+    let doomed = this.deleteDcons(this.nthDcons(i));
+
+    this.count--;
+    this.cursor.reset();
+
+    return doomed;
+};
+
+DoublyLinkedList.prototype.doDoDeleteNode = function(doomed) {
+    let result = this.deleteDcons(doomed);
+
+    this.count--;
+    this.cursor.reset();
+
+    return result;
+};
+
+DoublyLinkedList.prototype.deleteDcons = function(doomed) {
+    if ( doomed === doomed.getNext() ) {
+        doomed.setNext(null);
+        this.store = null;
+
+        return doomed.getContent();
+    } else {
+        let result = doomed.exciseNode();
+        if ( doomed === this.store ) {
+            this.store = doomed.getNext();
+        }
+
+        return result;
+    }
+};
+
+//
+//    This is not really needed for DoublyLinkedList.
+//    
+DoublyLinkedList.prototype.doDoDeleteChild = function(parent) {
+    let child = parent.getNext();
+
+    if ( child === this.store ) {
+        throw new Error("Parent must have child node");
+    } else {
+        let result = parent.exciseChild();
+
+        this.count--;
+        this.cursor.reset();
+
+        return result;
+    }
+};
+
+DoublyLinkedList.prototype.index = function(obj, test = (item, elt) => item === elt) {
+    let dcons = this.store;
+
+    for (let i = 0; i < this.size(); i++) {
+//        if ( dcons.getContent() === obj ) {
+        if ( test(obj, dcons.getContent()) ) {
+            return i;
+        }
+
+        dcons = dcons.getNext();
+    }
+
+    return -1;
+}
+
+DoublyLinkedList.prototype.subseq = function(start, end) {
+    let result = [];
+
+    if ( start < end ) {
+        let dcons = this.nthDcons(start);
+
+        for (let i = start; i < end; i++) {
+            result.push(dcons.getContent());
+            dcons = dcons.getNext();
+        }
+    }
+
+    return result;
+};
+        
+DoublyLinkedList.prototype.doSlice = function(i, n) {
+    let dll = new DoublyLinkedList(this.fillElt);
+    dll.add(...this.subseq(Math.min(i, this.count), Math.min(i+n, this.count)));
+    return dll;
+};
+
+DoublyLinkedList.prototype.doGet = function(i) {
+    return this.nthDcons(i).getContent();
+};
+
+DoublyLinkedList.prototype.doSet = function(i, obj) {
+    this.nthDcons(i).setContent(obj);
+};
+
+
+
+
+
+
+//
+//     DoublyLinkedListIterator
+//
+function DoublyLinkedListIterator(collection) {
+    MutableCollectionIterator.call(this, collection);
+    this.cursor = new Dcursor(collection);
+    this.sealedForYourProtection = true;
+};
+
+DoublyLinkedListIterator.prototype = Object.create(MutableCollectionIterator.prototype);
+DoublyLinkedListIterator.prototype.constructor = DoublyLinkedListIterator;
+Object.defineProperty(DoublyLinkedListIterator.prototype, "constructor", {enumerable: false, configurable: false});
+
+DoublyLinkedListIterator.prototype.doDoCurrent = function() {
+    return this.cursor.node.getContent();
+};
+
+DoublyLinkedListIterator.prototype.doIsDone = function() {
+    return !this.cursor.isInitialized()  ||
+        (!this.sealedForYourProtection  &&  this.cursor.atStart());
+};
+
+DoublyLinkedListIterator.prototype.doNext = function() {
+    if ( this.isDone() ) {
+        return null;
+    } else {
+        this.cursor.advance();
+        this.sealedForYourProtection = false;
+
+        if ( this.isDone() ) {
+            return null;
+        } else {
+            return this.current();
+        }
+    }
+};
+
+
+
+
+//
+//     PersistentList
+//
+function PersistentList(fillElt) {
+    List.call(this, fillElt);
+    this.store = null;
+    this.count = 0;
+}
+
+PersistentList.prototype = Object.create(List.prototype);
+PersistentList.prototype.constructor = PersistentList;
+Object.defineProperty(PersistentList.prototype, "constructor", {enumerable: false, configurable: false});
+
+PersistentList.initializeList = function(fillElt, store, count) {
+    let pl = new PersistentList(fillElt);
+    pl.store = store;
+    pl.count = count;
+
+    return pl;
+};
+
+PersistentList.prototype.toString = function() {
+    let result = "(";
+    if ( !this.isEmpty() ) {  // ??
+        let i = this.iterator();
+        result += i.current();
+        i = i.next();    
+        while ( !i.isDone() ) {
+            result += ` ${i.current()}`;
+            i = i.next();
+        }
+    }
+    
+    result += ")";
+
+    return result;
+};
+    
+
+// (defun make-persistent-list (&key (type t) (fill-elt nil))
+//   (make-instance 'persistent-list :type type :fill-elt fill-elt))
+
+// (defmethod equals ((l1 list) (l2 persistent-list) &key (test #'eql))
+//   (equals l2 l1 :test #'(lambda (x y) (funcall test y x))))
+// (defmethod equals ((l1 persistent-list) (l2 list) &key (test #'eql))
+//   (if (= (size l1) (size l2))
+//       (let ((i2 (iterator l2)))
+//         (loop for i1 = (iterator l1) then (next i1)
+//               do (cond ((done i1) (return (done i2)))
+//                        ((done i2) (return nil))
+//                        ((funcall test (current i1) (current i2)) (next i2))
+//                        (t (return nil)))) )
+//       nil))
+// (defmethod equals ((l1 persistent-list) (l2 persistent-list) &key (test #'eql))
+//   (if (= (size l1) (size l2))
+//       (loop for i1 = (iterator l1) then (next i1)
+//             for i2 = (iterator l2) then (next i2)
+//             do (cond ((done i1) (return (done i2)))
+//                      ((done i2) (return nil))
+//                      ((not (funcall test (current i1) (current i2))) (return nil))))
+//       nil))
+
+// (defmethod each ((l persistent-list) op)
+//   (loop for i = (iterator l) then (next i)
+//         until (done i)
+//         do (funcall op (current i))))
+
+PersistentList.prototype.size = function() {
+    return this.count;
+};
+
+PersistentList.prototype.isEmpty = function() {
+    return this.store === null;
+};
+
+
+(defmethod clear ((l persistent-list))
+  (make-instance 'persistent-list :type (type l) :fill-elt (fill-elt l)))
+
+(defmethod iterator ((l persistent-list))
+  (make-instance 'persistent-list-iterator :collection l))
+
+(defmethod list-iterator ((l persistent-list) &optional (start 0))
+  (make-instance 'persistent-list-list-iterator :list l :cursor (slot-value l 'store) :start start))
+p
+(defmethod contains ((l persistent-list) obj &key (test #'eql))
+  (with-slots (store) l
+    (find obj store :test test)))
+
+(defmethod add ((l persistent-list) &rest objs)
+  (if (null objs)
+      l
+      (with-slots (store) l
+        (loop for elt in objs
+              collect elt into elts
+              finally (return (make-instance 'persistent-list 
+                                             :store (append store elts) 
+                                             :type (type l)
+                                             :fill-elt (fill-elt l)))) )))
