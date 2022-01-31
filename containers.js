@@ -201,6 +201,26 @@ Node.subseq = function(node, start, end) {
     return result;
 };
 
+Node.sublist = function(node, start, end) {
+    function subseq(l, result, i) {
+        if ( i === end  ||  l === null ) {
+            return Node.reverse(result);
+        } else {
+            return subseq(l.rest(), new Node(l.first(), result), i+1);
+        }
+    }
+
+    return subseq(node, null, start);
+};
+
+Node.append = function(l1, l2) {
+    if ( l1 === null ) {
+        return l2;
+    } else {
+        return new Node(l1.first(), Node.append(l1.rest(), l2));
+    }
+};
+
 //
 //     Collection
 //     

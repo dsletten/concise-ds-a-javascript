@@ -191,13 +191,13 @@ PersistentStack.prototype = Object.create(Stack.prototype);
 PersistentStack.prototype.constructor = PersistentStack;
 Object.defineProperty(PersistentStack.prototype, "constructor", {enumerable: false, configurable: false});
 
-function initializeStack(top, count) {
+PersistentStack.initializeStack = function(top, count) {
     let newStack = new PersistentStack();
     newStack.top = top;
     newStack.count = count;
 
     return newStack;
-}
+};
 
 PersistentStack.prototype.size = function() {
     return this.count;
@@ -212,11 +212,11 @@ PersistentStack.prototype.clear = function() {
 };
 
 PersistentStack.prototype.push = function(obj) {
-    return initializeStack(new Node(obj, this.top), this.count+1);
+    return PersistentStack.initializeStack(new Node(obj, this.top), this.count+1);
 };
 
 PersistentStack.prototype.doPop = function() {
-    return initializeStack(this.top.rest(), this.count-1);
+    return PersistentStack.initializeStack(this.top.rest(), this.count-1);
 };
 
 PersistentStack.prototype.doPeek = function() {

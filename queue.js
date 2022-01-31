@@ -106,7 +106,7 @@ ArrayQueue.prototype.doFront = function() {
 //     LinkedQueue
 //     
 function LinkedQueue() {
-    this.head = null;
+    this.head = null; // `front` clashes with `front()`!!
     this.tail = null;
     this.count = 0;
 }
@@ -133,8 +133,7 @@ LinkedQueue.prototype.enqueue = function(obj) {
     let node = new Node(obj, null);
 
     if ( this.head === null ) {
-        this.head = node;
-        this.tail = this.head;
+        this.tail = this.head = node;
     } else {
         this.tail.setRest(node);
         this.tail = this.tail.rest();
@@ -280,14 +279,14 @@ PersistentQueue.prototype = Object.create(Queue.prototype);
 PersistentQueue.prototype.constructor = PersistentQueue;
 Object.defineProperty(PersistentQueue.prototype, "constructor", {enumerable: false, configurable: false});
 
-function initializeQueue(head, tail, count) {
+PersistentQueue.initializeQueue = function(head, tail, count) {
     let newQueue = new PersistentQueue();
     newQueue.head = head;
     newQueue.tail = tail;
     newQueue.count = count;
 
     return newQueue;
-}
+};
 
 PersistentQueue.prototype.size = function() {
     return this.count;
@@ -303,17 +302,17 @@ PersistentQueue.prototype.clear = function() {
 
 PersistentQueue.prototype.enqueue = function(obj) {
     if ( this.isEmpty() ) {
-        return initializeQueue(new Node(obj, null), null, 1);
+        return PersistentQueue.initializeQueue(new Node(obj, null), null, 1);
     } else {
-        return initializeQueue(this.head, new Node(obj, this.tail), this.count+1);
+        return PersistentQueue.initializeQueue(this.head, new Node(obj, this.tail), this.count+1);
     }
 };
 
 PersistentQueue.prototype.doDequeue = function() {
     if ( this.head.rest() === null ) {
-        return initializeQueue(Node.reverse(this.tail), null, this.count-1);
+        return PersistentQueue.initializeQueue(Node.reverse(this.tail), null, this.count-1);
     } else {
-        return initializeQueue(this.head.rest(), this.tail, this.count-1);
+        return PersistentQueue.initializeQueue(this.head.rest(), this.tail, this.count-1);
     }
 };
 
