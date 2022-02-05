@@ -91,7 +91,7 @@ List.prototype.each = function(op) {
     let i = this.iterator();
 
     while ( !i.isDone() ) {
-        op.call(null, i.current());
+        op(i.current());
         i.next();
     }
 };
@@ -173,12 +173,12 @@ List.prototype.set = function(i, obj) {
     if ( i < 0 ) {
         let j = i + this.size();
         if ( j >= 0 ) {
-            this.set(j, obj);
+            return this.set(j, obj);
         }
     } else if ( i >= this.size() ) {
-        this.extendList(i, obj);
+        return this.extendList(i, obj);
     } else {
-        this.doSet(i, obj);
+        return this.doSet(i, obj);
     }
 };
 
@@ -680,18 +680,7 @@ SinglyLinkedList.prototype.doSet = function(i, obj) {
 };
 
 SinglyLinkedList.prototype.index = function(obj, test = (item, elt) => item === elt) {
-    function nodeIndex(node, i) {
-        if ( node === null ) {
-            return null;
-//        } else if ( node.first() === obj) {
-        } else if ( test(obj, node.first()) ) {
-            return i;
-        } else {
-            return nodeIndex(node.rest(), i+1);
-        }
-    }
-
-    return nodeIndex(this.front, 0);
+    return Node.index(this.front, obj, test);
 };
 
 SinglyLinkedList.prototype.doSlice = function(i, n) {
@@ -1277,7 +1266,7 @@ PersistentList.prototype.contains = function(obj, test = (item, elt) => item ===
 };
 
 //
-//     Consider iterative implementation. 见 doInsert
+//     Consider iterative implementation. 见 doInsert (Avoiding append()!)
 //     
 PersistentList.prototype.add = function(...objs) {
     if ( objs.length === 0 ) {
@@ -1293,13 +1282,10 @@ PersistentList.prototype.add = function(...objs) {
     }
 }
 
-//
-//     "Around" method ensures that we do not go past end of list.
-//     
-PersistentList.prototype.doInsert = function(i, obj) {
+PersistentList.adjustNode = function(store, i, adjustment) {
     let front = null;
     let rear = null;
-    let node = this.store;
+    let node = store;
 
     for (let j = 0; j < i; j++) {
         let newNode = new Node(node.first(), null);
@@ -1314,7 +1300,7 @@ PersistentList.prototype.doInsert = function(i, obj) {
         node = node.rest();
     }
 
-    let tail = new Node(obj, node);
+    let tail = adjustment(node);
 
     if ( front === null ) {
         front = tail;
@@ -1322,7 +1308,18 @@ PersistentList.prototype.doInsert = function(i, obj) {
         rear.setRest(tail);
     }
 
-    return PersistentList.initializeList(this.fillElt, front, this.count + 1);
+    return front;
+};
+
+//
+//     "Around" method ensures that we do not go past end of list.
+//     
+PersistentList.prototype.doInsert = function(i, obj) {
+    return PersistentList.initializeList(this.fillElt,
+                                         PersistentList.adjustNode(this.store,
+                                                                   i,
+                                                                   (node) => new Node(obj, node)),
+                                         this.count + 1);
 
     // return PersistentList.initializeList(this.fillElt,
     //                                      Node.append(Node.sublist(this.store, 0, i),
@@ -1343,49 +1340,87 @@ PersistentList.prototype.delete = function(i) {
 };
 
 PersistentList.prototype.doDelete = function(i) {
-    let front = null;
-    let rear = null;
-    let node = this.store;
+    // let front = null;
+    // let rear = null;
+    // let node = this.store;
 
-    for (let j = 0; j < i; j++) {
-        let newNode = new Node(node.first(), null);
+    // for (let j = 0; j < i; j++) {
+    //     let newNode = new Node(node.first(), null);
 
-        if ( front === null ) {
-            rear = front = newNode;
-        } else {
-            rear.setRest(newNode);
-            rear = rear.rest();
-        }
+    //     if ( front === null ) {
+    //         rear = front = newNode;
+    //     } else {
+    //         rear.setRest(newNode);
+    //         rear = rear.rest();
+    //     }
 
-        node = node.rest();
-    }
+    //     node = node.rest();
+    // }
 
-    let tail = node.rest();
+    // let tail = node.rest();
 
-    if ( front === null ) {
-        front = tail;
-    } else {
-        rear.setRest(tail);
-    }
+    // if ( front === null ) {
+    //     front = tail;
+    // } else {
+    //     rear.setRest(tail);
+    // }
 
-    return PersistentList.initializeList(this.fillElt, front, this.count - 1);
+    return PersistentList.initializeList(this.fillElt,
+                                         PersistentList.adjustNode(this.store,
+                                                                   i,
+                                                                   (node) => node.rest()),
+                                         this.count - 1);
 };    
-
-  //         ((>= i (size l)) l)
-  //         ((< i (- (size l))) l)
-  //         (t (call-next-method))))
-  // (defmethod delete ((l persistent-list) (i integer))
-  //   (with-slots (type fill-elt store count) l
-  //     (multiple-value-bind (new-store doomed)
-  //         (loop for elt in store
-  //               for tail on store
-  //               repeat i ; This must be here.
-  //               collect elt into elts
-  //               finally (return (values (nconc elts (rest tail)) elt)))
-  //       (values (initialize-list type fill-elt new-store (1- count)) doomed))))
 
 PersistentList.prototype.doGet = function(i) {
     return Node.nth(this.store, i);
+};
+
+PersistentList.prototype.doSet = function(i, obj) {
+    // let front = null;
+    // let rear = null;
+    // let node = this.store;
+
+    // for (let j = 0; j < i; j++) {
+    //     let newNode = new Node(node.first(), null);
+
+    //     if ( front === null ) {
+    //         rear = front = newNode;
+    //     } else {
+    //         rear.setRest(newNode);
+    //         rear = rear.rest();
+    //     }
+
+    //     node = node.rest();
+    // }
+
+    // let tail = new Node(obj, node.rest());
+
+    // if ( front === null ) {
+    //     front = tail;
+    // } else {
+    //     rear.setRest(tail);
+    // }
+
+    
+    return PersistentList.initializeList(this.fillElt,
+                                         PersistentList.adjustNode(this.store,
+                                                                   i,
+                                                                   (node) => new Node(obj, node.rest())),
+                                         this.count);
+};
+    
+PersistentList.prototype.index = function(obj, test = (item, elt) => item === elt) {
+    return Node.index(this.store, obj, test);
+};
+
+//
+//    Deviates from other doSlice() implementations.
+// 
+PersistentList.prototype.doSlice = function(i, n) {
+    let start = Math.min(i, this.count);
+    let end = Math.min(i+n, this.count);
+    return PersistentList.initializeList(this.fillElt, Node.sublist(this.store, start, end), end - start);
 };
 
 //

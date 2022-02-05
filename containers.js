@@ -148,12 +148,25 @@ Node.reverse = function(list) {
 Node.contains = function(node, obj, test = (item, elt) => item === elt) {
     if ( node === null ) {
         return null;
-//    } else if ( node.first() === obj ) {
     } else if ( test(obj, node.first()) ) {
         return node.first();
     } else {
         return Node.contains(node.rest(), obj, test);
     }
+};
+
+Node.index = function(node, obj, test = (item, elt) => item === elt) {
+    function index(node, i) {
+        if ( node === null ) {
+            return -1;
+        } else if ( test(obj, node.first()) ) {
+            return i;
+        } else {
+            return index(node.rest(), i+1);
+        }
+    }
+
+    return index(node, 0);
 };
 
 Node.nthCdr = function(node, i) {
@@ -210,7 +223,7 @@ Node.sublist = function(node, start, end) {
         }
     }
 
-    return subseq(node, null, start);
+    return subseq(Node.nthCdr(node, start), null, start);
 };
 
 Node.append = function(l1, l2) {
