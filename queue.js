@@ -34,6 +34,10 @@ Queue.prototype = Object.create(Dispenser.prototype);
 Queue.prototype.constructor = Queue;
 Object.defineProperty(Queue.prototype, "constructor", {enumerable: false, configurable: false});
 
+Queue.prototype.isEmpty = function() {
+    return this.size() === 0;
+};
+
 Queue.prototype.clear = function() {
     while ( !this.isEmpty() ) {
         this.dequeue();
@@ -57,6 +61,10 @@ Queue.prototype.front = function() {
     } else {
         return this.doFront();
     }
+};
+
+Queue.prototype.enqueue = function() {
+    throw new Error("Queue does not implement enqueue().");
 };
 
 Queue.prototype.doDequeue = function() {
@@ -119,9 +127,9 @@ LinkedQueue.prototype.size = function() {
     return this.count;
 };
 
-LinkedQueue.prototype.isEmpty = function() {
-    return this.size() === 0;
-};
+// LinkedQueue.prototype.isEmpty = function() {
+//     return this.size() === 0;
+// };
 
 LinkedQueue.prototype.clear = function() {
     this.head = null;
@@ -136,7 +144,7 @@ LinkedQueue.prototype.enqueue = function(obj) {
         this.tail = this.head = node;
     } else {
         this.tail.setRest(node);
-        this.tail = this.tail.rest();
+        this.tail = node;
     }
 
     this.count++;
@@ -176,9 +184,9 @@ CircularQueue.prototype.size = function() {
     return this.count;
 };
 
-CircularQueue.prototype.isEmpty = function() {
-    return this.size() === 0;
-};
+// CircularQueue.prototype.isEmpty = function() {
+//     return this.size() === 0;
+// };
 
 CircularQueue.prototype.clear = function() {
     this.index = null;
@@ -292,9 +300,9 @@ PersistentQueue.prototype.size = function() {
     return this.count;
 };
 
-PersistentQueue.prototype.isEmpty = function() {
-    return this.size() === 0;
-};
+// PersistentQueue.prototype.isEmpty = function() {
+//     return this.size() === 0;
+// };
 
 PersistentQueue.prototype.clear = function() {
     return new PersistentQueue();
@@ -318,4 +326,177 @@ PersistentQueue.prototype.doDequeue = function() {
 
 PersistentQueue.prototype.doFront = function() {
     return this.head.first();
+};
+
+//
+//    Deque (Double-ended queue)
+//
+function Deque() {
+    throw new Error("Cannot instantiate Deque.");
+}
+
+Deque.prototype = Object.create(Queue.prototype);
+Deque.prototype.constructor = Deque;
+Object.defineProperty(Deque.prototype, "constructor", {enumerable: false, configurable: false});
+
+// Deque.prototype.isEmpty = function() {
+//     return this.size() === 0;
+// };
+
+Deque.prototype.enqueueFront = function(obj) {
+    throw new Error("Deque does not implement enqueueFront().");
+};
+
+Deque.prototype.dequeueRear = function(obj) {
+    if ( this.isEmpty() ) {
+        throw new Error("Deque is empty.");
+    } else {
+        return this.doDequeueRear();
+    }
+};
+
+Deque.prototype.rear = function(obj) {
+    if ( this.isEmpty() ) {
+        throw new Error("Deque is empty.");
+    } else {
+        return this.doRear();
+    }
+};
+
+Deque.prototype.doDequeueRear = function(obj) {
+    throw new Error("Deque does not implement doDequeueRear().");
+};
+
+Deque.prototype.doRear = function(obj) {
+    throw new Error("Deque does not implement doRear().");
+};
+
+//
+//    Doubly-linked-list deque
+//
+// function DllDeque(list) {
+//     this.list = list;
+// }
+
+function DllDeque() {
+    this.list = new DoublyLinkedList();
+}
+
+// (defun make-dll-deque (&optional (type t))
+//   (make-instance 'dll-deque :type type :list (make-doubly-linked-list :type type))) ; ??
+// ;  (make-instance 'dll-deque :type type :list (make-doubly-linked-list))) ; ??
+
+DllDeque.prototype = Object.create(Deque.prototype);
+DllDeque.prototype.constructor = DllDeque;
+Object.defineProperty(DllDeque.prototype, "constructor", {enumerable: false, configurable: false});
+
+DllDeque.prototype.size = function() {
+    return this.list.size();
+};
+
+DllDeque.prototype.enqueue = function(obj) {
+    this.list.add(obj);
+};
+
+DllDeque.prototype.doDequeue = function() {
+    let discard = this.front();
+    this.list.delete(0);
+
+    return discard;
+};
+
+DllDeque.prototype.enqueueFront = function(obj) {
+    this.list.insert(0, obj);
+};
+
+DllDeque.prototype.doDequeueRear = function() {
+    let discard = this.rear();
+    this.list.delete(-1);
+
+    return discard;
+};
+
+DllDeque.prototype.doFront = function(obj) {
+    return this.list.get(0);
+};
+
+DllDeque.prototype.doRear = function(obj) {
+    return this.list.get(-1);
+};
+
+//
+//    HashDeque
+//
+function HashDeque() {
+    this.store = {};
+    this.count = 0;
+    this.head = 0;
+    this.tail = 0;
+}
+
+HashDeque.prototype = Object.create(Deque.prototype);
+HashDeque.prototype.constructor = HashDeque;
+Object.defineProperty(HashDeque.prototype, "constructor", {enumerable: false, configurable: false});
+
+HashDeque.prototype.size = function() {
+    return this.count;
+};
+
+HashDeque.prototype.clear = function() {
+    this.store = {};
+    this.count = 0;
+    this.head = 0;
+    this.tail = 0;
+};
+
+HashDeque.prototype.enqueue = function(obj) {
+    if ( !this.isEmpty() ) {
+        this.tail++;
+    }
+
+    this.store[this.tail] = obj;
+    this.count++;
+};
+
+HashDeque.prototype.enqueueFront = function(obj) {
+    if ( !this.isEmpty() ) {
+        this.head--;
+    }
+
+    this.store[this.head] = obj;
+    this.count++;
+};
+
+HashDeque.prototype.doDequeue = function() {
+    let discard = this.front();
+    delete this.store[this.head];
+
+    this.count--;
+
+    if ( !this.isEmpty() ) {
+        this.head++;
+    }
+
+    return discard;
+};
+
+HashDeque.prototype.doDequeueRear = function() {
+    let discard = this.rear();
+    delete this.store[this.tail];
+
+    this.count--;
+
+    if ( !this.isEmpty() ) {
+        this.tail--;
+    }
+
+    return discard;
+};
+
+HashDeque.prototype.doFront = function(obj) {
+    return this.store[this.head];
+};
+
+HashDeque.prototype.doRear = function(obj) {
+    return this.store[this.tail];
 };

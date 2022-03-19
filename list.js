@@ -39,7 +39,6 @@ function mod(number, divisor) {
     }
 }
 
-
 //
 //     List
 //     
@@ -191,15 +190,17 @@ List.prototype.index = function(obj, test) {
 };
 
 List.prototype.slice = function(i, n) {
-    if ( n < 0 ) {
-        throw new Error(`Count \`n\` must be non-negative: ${n}`);
-    } else if ( i < 0 ) {
+    if ( i < 0 ) {
         let j = i + this.size();
         if ( j < 0 ) {
             return this.slice(0, 0);
         } else {
             return this.slice(j, n);
         }
+    } else if ( n === undefined ) {
+        return this.doSlice(i, this.size() - i);
+    } else if ( n < 0 ) {
+        throw new Error(`Count \`n\` must be non-negative: ${n}`);
     } else {
         return this.doSlice(i, n);
     }
@@ -444,9 +445,9 @@ ArrayList.prototype.iterator = function() {
     return new RandomAccessListIterator(this);
 };
     
-    // def list_iterator(start=0)
-    //   RandomAccessListListIterator.new(self, start)
-    // end
+ArrayList.prototype.listIterator = function(start = 0) {
+    return new RandomAccessListListIterator(this, start);
+};
 
 ArrayList.prototype.doClear = function() {
     this.store = [];
@@ -553,10 +554,9 @@ SinglyLinkedList.prototype.iterator = function() {
     return new SinglyLinkedListIterator(this);
 };
 
-
-// ;;; ??
-// (defmethod list-iterator ((l singly-linked-list-x) &optional (start 0))
-//   (make-instance 'singly-linked-list-list-iterator :list l :start start))
+SinglyLinkedList.prototype.listIterator = function(start = 0) {
+    return new SinglyLinkedListListIterator(this, start);
+};
 
 SinglyLinkedList.prototype.contains = function(obj, test = (item, elt) => item === elt) {
     return Node.contains(this.front, obj, test);
@@ -686,6 +686,7 @@ SinglyLinkedList.prototype.index = function(obj, test = (item, elt) => item === 
 SinglyLinkedList.prototype.doSlice = function(i, n) {
     let sll = new SinglyLinkedList(this.fillElt);
     sll.add(...Node.subseq(this.front, Math.min(i, this.count), Math.min(i+n, this.count)));
+
     return sll;
 };
     
@@ -842,7 +843,7 @@ Dcursor.prototype.atStart = function() {
 };
 
 Dcursor.prototype.atEnd = function() {
-    return !this.isInitialized() || this.index === this.size() - 1;
+    return !this.isInitialized() || this.index === this.list.size() - 1;
 };
 
 Dcursor.prototype.advance = function(step = 1) {
@@ -924,8 +925,9 @@ DoublyLinkedList.prototype.iterator = function() {
     return new DoublyLinkedListIterator(this);
 };
 
-// (defmethod list-iterator ((l doubly-linked-list) &optional (start 0))
-//   (make-instance 'doubly-linked-list-list-iterator :list l :start start))
+DoublyLinkedList.prototype.listIterator = function(start = 0) {
+    return new DoublyLinkedListListIterator(this, start);
+};
 
 DoublyLinkedList.prototype.contains = function(obj, test = (item, elt) => item === elt) {
     let count = this.count;
@@ -970,28 +972,65 @@ DoublyLinkedList.prototype.doAdd = function(objs) {
     }
 };
 
+// DoublyLinkedList.prototype.nthDcons = function(i) {
+//     if ( i < 0  ||  i >= this.size() ) {
+//         throw new Error(`Invalid index: ${i}`);
+//     } else if ( this.isEmpty() ) {
+//         throw new Error("List is empty");
+//     } else if ( i === 0 ) {
+//         return this.store;
+//     } else if ( i === this.cursor.index ) {
+//         return this.cursor.node;
+//     } else if ( i < this.cursor.index / 2 ) {
+//         this.cursor.reset();
+//         this.cursor.advance(i);
+//         return this.cursor.node;
+//     } else if ( i < this.cursor.index ) {
+//         this.cursor.rewind(this.cursor.index - i);
+//         return this.cursor.node;
+//     } else if ( i <= (this.count + this.cursor.index) / 2 ) {
+//         this.cursor.advance(i - this.cursor.index);
+//         return this.cursor.node;
+//     } else {
+//         this.cursor.reset();
+//         this.cursor.rewind(this.count - i);
+//         return this.cursor.node;
+//     }
+// };
+
 DoublyLinkedList.prototype.nthDcons = function(i) {
-    if ( i < 0  ||  i >= this.size() ) {
-        throw new Error(`Invalid index: ${i}`);
-    } else if ( this.isEmpty() ) {
+    function repositionCursor(cursor, i, count) {
+        if ( i === 0 ) {
+            cursor.reset();
+        } else if ( i < cursor.index ) {
+            let indexDelta = cursor.index - i;
+
+            if ( i < indexDelta ) {
+                cursor.reset();
+                cursor.advance(i);
+            } else {
+                cursor.rewind(indexDelta);
+            }
+        } else if ( i > cursor.index ) {
+            let indexDelta = i - cursor.index;
+            let countDelta = count - i;
+
+            if ( indexDelta <= countDelta ) {
+                cursor.advance(indexDelta);
+            } else {
+                cursor.reset();
+                cursor.rewind(countDelta);
+            }
+        }
+    }
+    
+    if ( this.isEmpty() ) {
         throw new Error("List is empty");
-    } else if ( i === 0 ) {
-        return this.store;
-    } else if ( i === this.cursor.index ) {
-        return this.cursor.node;
-    } else if ( i < this.cursor.index / 2 ) {
-        this.cursor.reset();
-        this.cursor.advance(i);
-        return this.cursor.node;
-    } else if ( i < this.cursor.index ) {
-        this.cursor.rewind(this.cursor.index - i);
-        return this.cursor.node;
-    } else if ( i <= (this.count + this.cursor.index) / 2 ) {
-        this.cursor.advance(i - this.cursor.index);
-        return this.cursor.node;
+    } else if ( i < 0  ||  i >= this.size() ) {
+        throw new Error(`Invalid index: ${i}`);
     } else {
-        this.cursor.reset();
-        this.cursor.rewind(this.count - i);
+        repositionCursor(this.cursor, i, this.count);
+
         return this.cursor.node;
     }
 };
@@ -1024,13 +1063,15 @@ DoublyLinkedList.prototype.doDoInsertBefore = function(node, obj) {
     }
 
     this.count++;
-    this.cursor.index++;
+//    this.cursor.index++;
+    this.cursor.reset();
 };
 
 DoublyLinkedList.prototype.doDoInsertAfter = function(node, obj) {
     node.spliceAfter(obj)
 
     this.count++;
+    this.cursor.reset();
 };
 
 DoublyLinkedList.prototype.doDoDelete = function(i) {
@@ -1117,6 +1158,7 @@ DoublyLinkedList.prototype.subseq = function(start, end) {
 DoublyLinkedList.prototype.doSlice = function(i, n) {
     let dll = new DoublyLinkedList(this.fillElt);
     dll.add(...this.subseq(Math.min(i, this.count), Math.min(i+n, this.count)));
+
     return dll;
 };
 
@@ -1173,8 +1215,102 @@ DoublyLinkedListIterator.prototype.doNext = function() {
 //
 //     HashTableList
 //     
+function HashTableList(fillElt) {
+    MutableList.call(this, fillElt);
+    this.store = {};
+    this.count = 0;
+}
 
+HashTableList.prototype = Object.create(MutableList.prototype);
+HashTableList.prototype.constructor = HashTableList;
+Object.defineProperty(HashTableList.prototype, "constructor", {enumerable: false, configurable: false});
 
+HashTableList.prototype.size = function() {
+    return this.count;
+};
+
+HashTableList.prototype.isEmpty = function() {
+    return this.count === 0;
+};
+
+HashTableList.prototype.iterator = function() {
+    return new RandomAccessListIterator(this);
+};
+
+HashTableList.prototype.doClear = function() {
+    this.store = {};
+    this.count = 0;
+};
+
+HashTableList.prototype.contains = function(obj, test = (item, elt) => item === elt) {
+    for (let i = 0; i < this.count; i++) {
+        let elt = this.get(i);
+        if ( test(obj, elt) ) {
+            return elt;
+        }
+    }
+
+    return null;
+};
+
+HashTableList.prototype.doAdd = function(objs) {
+    for (let obj of objs) {
+        this.store[this.count++] = obj;
+    }
+};
+
+HashTableList.prototype.doDoInsert = function(i, obj) {
+    for (let j = this.count; j > i; j--) {
+        this.store[j] = this.store[j-1];
+    }
+
+    this.store[i] = obj;
+};
+    
+HashTableList.prototype.doDoDelete = function(i) {
+    let doomed = this.get(i);
+    for (let j = i; j < this.count; j++) {
+        this.store[j] = this.store[j+1];
+    }
+
+    delete this.store[--this.count];
+
+    return doomed;
+};
+
+HashTableList.prototype.doGet = function(i) {
+    return this.store[i];
+};
+
+HashTableList.prototype.doSet = function(i, obj) {
+    this.store[i] = obj;
+};
+
+HashTableList.prototype.index = function(obj, test = (item, elt) => item === elt) {
+    for (let i = 0; i < this.count; i++) {
+        if ( test(obj, this.get(i)) ) {
+            return i;
+        }
+    }
+
+    return -1;
+};
+
+HashTableList.prototype.doSlice = function(i, n) {
+    let list = new HashTableList(this.fillElt);
+    let subseq = [];
+    let start = Math.min(i, this.count);
+    let end = Math.min(i+n, this.count);
+
+    for (let j = start; j < end; j++) {
+        subseq.push(this.get(j));
+    }
+
+    list.add(...subseq);
+
+    return list;
+};
+        
 //
 //     PersistentList
 //
@@ -1237,10 +1373,14 @@ PersistentList.prototype.toString = function() {
 //                      ((not (funcall test (current i1) (current i2))) (return nil))))
 //       nil))
 
-// (defmethod each ((l persistent-list) op)
-//   (loop for i = (iterator l) then (next i)
-//         until (done i)
-//         do (funcall op (current i))))
+PersistentList.prototype.each = function(op) {
+    let i = this.iterator();
+
+    while ( !i.isDone() ) {
+        op(i.current());
+        i = i.next();
+    }
+};
 
 PersistentList.prototype.size = function() {
     return this.count;
@@ -1258,8 +1398,9 @@ PersistentList.prototype.iterator = function() {
     return new PersistentListIterator(this);
 };
 
-// (defmethod list-iterator ((l persistent-list) &optional (start 0))
-//   (make-instance 'persistent-list-list-iterator :list l :cursor (slot-value l 'store) :start start))
+PersistentList.prototype.listIterator = function(start = 0) {
+    return new PersistentListListIterator(this, start);
+};
 
 PersistentList.prototype.contains = function(obj, test = (item, elt) => item === elt) {
     return Node.contains(this.store, obj, test);
@@ -1447,5 +1588,636 @@ PersistentListIterator.prototype.next = function() {
         return this;
     } else {
         return new PersistentListIterator(this.collection.delete(0));
+    }
+};
+
+//
+//    ListIterator
+//
+function ListIterator(list) {
+    this.list = list;
+}
+
+// ListIterator.prototype.type = function() {
+//     throw new Error("ListIterator does not implement type()");
+// };
+
+ListIterator.prototype.isEmpty = function() {
+    return this.list.isEmpty();
+};
+
+ListIterator.prototype.current = function() {
+    if ( this.isEmpty() ) {
+        throw new Error("List is empty.");
+    } else {
+        return this.doCurrent();
+    }
+};
+
+ListIterator.prototype.doCurrent = function() {
+    throw new Error("ListIterator does not implement doCurrent()");
+};
+
+ListIterator.prototype.currentIndex = function() {
+    if ( this.isEmpty() ) {
+        throw new Error("List is empty.");
+    } else {
+        return this.doCurrentIndex();
+    }
+};
+
+ListIterator.prototype.doCurrentIndex = function() {
+    throw new Error("ListIterator does not implement doCurrentIndex()");
+};
+
+ListIterator.prototype.setCurrent = function(obj) { // Type?
+    if ( this.isEmpty() ) {
+        throw new Error("List is empty.");
+    } else {
+        return this.doSetCurrent(obj);
+    }
+};
+
+ListIterator.prototype.doSetCurrent = function(obj) {
+    throw new Error("ListIterator does not implement doSetCurrent()");
+};
+
+ListIterator.prototype.hasNext = function() {
+    throw new Error("ListIterator does not implement hasNext()");
+};
+
+ListIterator.prototype.hasPrevious = function() {
+    throw new Error("ListIterator does not implement hasPrevious()");
+};
+
+ListIterator.prototype.next = function() {
+    if ( this.isEmpty() ) {
+        throw new Error("List is empty.");
+    } else {
+        return this.doNext();
+    }
+};
+
+ListIterator.prototype.doNext = function() {
+    throw new Error("ListIterator does not implement doNext()");
+};
+
+ListIterator.prototype.previous = function() {
+    if ( this.isEmpty() ) {
+        throw new Error("List is empty.");
+    } else {
+        return this.doPrevious();
+    }
+};
+
+ListIterator.prototype.doPrevious = function() {
+    throw new Error("ListIterator does not implement doPrevious()");
+};
+
+ListIterator.prototype.remove = function() {
+    if ( this.isEmpty() ) {
+        throw new Error("List is empty.");
+    } else {
+        return this.doRemove();
+    }
+};
+
+ListIterator.prototype.doRemove = function() {
+    throw new Error("ListIterator does not implement doRemove()");
+};
+
+ListIterator.prototype.addBefore = function() {
+    throw new Error("ListIterator does not implement addBefore()");
+};
+
+ListIterator.prototype.addAfter = function() {
+    throw new Error("ListIterator does not implement addAfter()");
+};
+
+//
+//    MutableListListIterator
+//
+function MutableListListIterator(list) {
+    ListIterator.call(this, list);
+    this.expectedModificationCount = list.modificationCount;
+}
+
+MutableListListIterator.prototype = Object.create(ListIterator.prototype);
+MutableListListIterator.prototype.constructor = MutableListListIterator;
+Object.defineProperty(MutableListListIterator.prototype, "constructor", {enumerable: false, configurable: false});
+
+MutableListListIterator.prototype.countModification = function() {
+    this.expectedModificationCount++;
+};
+
+MutableListListIterator.prototype.comodified = function() {
+    return this.expectedModificationCount !== this.list.modificationCount;
+};
+
+MutableListListIterator.prototype.doCurrent = function() {
+    if ( this.comodified() ) {
+        throw new Error("List iterator invalid due to structural modification of collection.");
+    } else {
+        return this.doDoCurrent();
+    }
+};
+
+MutableListListIterator.prototype.doDoCurrent = function() {
+    throw new Error("MutableListListIterator does not implement doDoCurrent()");
+};
+
+MutableListListIterator.prototype.doCurrentIndex = function() {
+    if ( this.comodified() ) {
+        throw new Error("List iterator invalid due to structural modification of collection.");
+    } else {
+        return this.doDoCurrentIndex();
+    }
+};
+
+MutableListListIterator.prototype.doDoCurrentIndex = function() {
+    throw new Error("MutableListListIterator does not implement doDoCurrentIndex()");
+};
+
+MutableListListIterator.prototype.doSetCurrent = function(obj) {
+    if ( this.comodified() ) {
+        throw new Error("List iterator invalid due to structural modification of collection.");
+    } else {
+        return this.doDoSetCurrent(obj);
+    }
+};
+
+MutableListListIterator.prototype.doDoSetCurrent = function(obj) {
+    throw new Error("MutableListListIterator does not implement doDoSetCurrent()");
+};
+
+MutableListListIterator.prototype.hasNext = function() {
+    if ( this.comodified() ) {
+        throw new Error("List iterator invalid due to structural modification of collection.");
+    } else {
+        return this.doHasNext();
+    }
+};
+
+MutableListListIterator.prototype.doHasNext = function() {
+    throw new Error("MutableListListIterator does not implement doHasNext()");
+};
+
+MutableListListIterator.prototype.hasPrevious = function() {
+    if ( this.comodified() ) {
+        throw new Error("List iterator invalid due to structural modification of collection.");
+    } else {
+        return this.doHasPrevious();
+    }
+};
+
+MutableListListIterator.prototype.doHasPrevious = function() {
+    throw new Error("MutableListListIterator does not implement doHasPrevious()");
+};
+
+MutableListListIterator.prototype.doNext = function() {
+    if ( this.comodified() ) {
+        throw new Error("List iterator invalid due to structural modification of collection.");
+    } else {
+        return this.doDoNext();
+    }
+};
+
+MutableListListIterator.prototype.doDoNext = function() {
+    throw new Error("MutableListListIterator does not implement doDoNext()");
+};
+
+MutableListListIterator.prototype.doPrevious = function() {
+    if ( this.comodified() ) {
+        throw new Error("List iterator invalid due to structural modification of collection.");
+    } else {
+        return this.doDoPrevious();
+    }
+};
+
+MutableListListIterator.prototype.doDoPrevious = function() {
+    throw new Error("MutableListListIterator does not implement doDoPrevious()");
+};
+
+MutableListListIterator.prototype.doRemove = function() {
+    if ( this.comodified() ) {
+        throw new Error("List iterator invalid due to structural modification of collection.");
+    } else {
+        let doomed = this.doDoRemove();
+        this.countModification();
+        return doomed;
+    }
+};
+
+MutableListListIterator.prototype.doDoRemove = function() {
+    throw new Error("MutableListListIterator does not implement doDoRemove()");
+};
+
+MutableListListIterator.prototype.addBefore = function(obj) {
+    if ( this.comodified() ) {
+        throw new Error("List iterator invalid due to structural modification of collection.");
+    } else {
+        this.doAddBefore(obj);
+        this.countModification();
+    }
+};
+
+MutableListListIterator.prototype.doAddBefore = function(obj) {
+    throw new Error("MutableListListIterator does not implement doAddBefore()");
+};
+
+MutableListListIterator.prototype.addAfter = function(obj) {
+    if ( this.comodified() ) {
+        throw new Error("List iterator invalid due to structural modification of collection.");
+    } else {
+        this.doAddAfter(obj);
+        this.countModification();
+    }
+};
+
+MutableListListIterator.prototype.doAddAfter = function(obj) {
+    throw new Error("MutableListListIterator does not implement doAddAfter()");
+};
+
+//
+//    RandomAccessListListIterator
+//
+function RandomAccessListListIterator(list, start = 0) {
+    MutableListListIterator.call(this, list);
+
+    if ( start < 0 ) {
+        throw new Error(`Invalid cursor index: ${start}`);
+    } else if ( list.isEmpty() ) {
+        this.cursor = 0;
+    } else {
+        this.cursor = Math.min(start, list.size() - 1);
+    }
+}
+
+RandomAccessListListIterator.prototype = Object.create(MutableListListIterator.prototype);
+RandomAccessListListIterator.prototype.constructor = RandomAccessListListIterator;
+Object.defineProperty(RandomAccessListListIterator.prototype, "constructor", {enumerable: false, configurable: false});
+
+RandomAccessListListIterator.prototype.doDoCurrent = function() {
+    return this.list.get(this.cursor);
+};
+
+RandomAccessListListIterator.prototype.doDoCurrentIndex = function() {
+    return this.cursor;
+};
+
+RandomAccessListListIterator.prototype.doDoSetCurrent = function(obj) {
+    this.list.set(this.cursor, obj);
+};
+
+RandomAccessListListIterator.prototype.doHasNext = function() {
+    return this.cursor < this.list.size() - 1;
+};
+
+RandomAccessListListIterator.prototype.doHasPrevious = function() {
+    return this.cursor > 0;
+};
+
+RandomAccessListListIterator.prototype.doNext = function() {
+    if ( this.hasNext() ) {
+        this.cursor++;
+        return this.current();
+    } else {
+        return null;
+    }
+};
+
+RandomAccessListListIterator.prototype.doPrevious = function() {
+    if ( this.hasPrevious() ) {
+        this.cursor--;
+        return this.current();
+    } else {
+        return null;
+    }
+};
+
+RandomAccessListListIterator.prototype.doDoRemove = function() {
+    let index = this.cursor;
+    if ( this.hasPrevious()  &&  !this.hasNext() ) {
+        this.cursor--;
+    }
+
+    return this.list.delete(index);
+};
+
+RandomAccessListListIterator.prototype.doAddBefore = function(obj) {
+    if ( this.isEmpty() ) {
+        this.list.add(obj);
+    } else {
+        this.list.insert(this.cursor, obj);
+        this.cursor++;
+    }
+};
+
+RandomAccessListListIterator.prototype.doAddAfter = function(obj) {
+    if ( this.isEmpty() ) {
+        this.list.add(obj);
+    } else {
+        this.list.insert(this.cursor + 1, obj);
+    }
+};
+
+//
+//    SinglyLinkedListListIterator
+//
+function SinglyLinkedListListIterator(list, start = 0) {
+    MutableListListIterator.call(this, list);
+    this.index = 0;
+    this.initializeCursor();
+    this.history = new LinkedStack();
+    
+    if ( start < 0 ) {
+        throw new Error(`Invalid cursor index: ${start}`);
+    }
+
+    for (let i = 0; i < Math.min(start, list.size() - 1); i++) {
+        this.next();
+    }
+}
+
+SinglyLinkedListListIterator.prototype = Object.create(MutableListListIterator.prototype);
+SinglyLinkedListListIterator.prototype.constructor = SinglyLinkedListListIterator;
+Object.defineProperty(SinglyLinkedListListIterator.prototype, "constructor", {enumerable: false, configurable: false});
+
+SinglyLinkedListListIterator.prototype.initializeCursor = function() {
+    this.cursor = this.list.front;
+};
+
+SinglyLinkedListListIterator.prototype.doDoCurrent = function() {
+    return this.cursor.first();
+};
+
+SinglyLinkedListListIterator.prototype.doDoCurrentIndex = function() {
+    return this.index;
+};
+
+SinglyLinkedListListIterator.prototype.doDoSetCurrent = function(obj) {
+    this.cursor.setFirst(obj);
+};
+
+SinglyLinkedListListIterator.prototype.doHasNext = function() {
+    return !(this.cursor === null  ||  this.cursor.rest() === null);
+};
+
+SinglyLinkedListListIterator.prototype.doHasPrevious = function() {
+    return !(this.cursor === null  ||  this.cursor === this.store);
+};
+
+SinglyLinkedListListIterator.prototype.doNext = function() {
+    if ( this.hasNext() ) {
+        this.history.push(this.cursor);
+        this.cursor = this.cursor.rest();
+        this.index++;
+        
+        return this.current();
+    } else {
+        return null;
+    }
+};
+
+SinglyLinkedListListIterator.prototype.doPrevious = function() {
+    if ( this.hasPrevious() ) {
+        this.cursor = this.history.pop();
+        this.index--;
+
+        return this.current();
+    } else {
+        return null;
+    }
+};
+
+SinglyLinkedListListIterator.prototype.doDoRemove = function() {
+    if ( this.index === 0 ) {
+        let doomed = this.list.deleteNode(this.cursor);
+        this.initializeCursor();
+
+        return doomed;
+    } else {
+        let parent = this.history.peek();
+
+        if ( this.hasNext() ) {
+            this.cursor = this.cursor.rest();
+        } else {
+            this.cursor = this.history.pop();
+            this.index--;
+        }
+
+        return this.list.deleteChild(parent);
+    }
+};
+
+SinglyLinkedListListIterator.prototype.doAddBefore = function(obj) {
+    if ( this.isEmpty() ) {
+        this.list.add(obj);
+        this.initializeCursor();
+    } else {
+        this.list.insertBefore(this.cursor, obj);
+        this.history.push(this.cursor);
+        this.cursor = this.cursor.rest();
+        this.index++;
+    }
+};
+
+SinglyLinkedListListIterator.prototype.doAddAfter = function(obj) {
+    if ( this.isEmpty() ) {
+        this.list.add(obj);
+        this.initializeCursor();
+    } else {
+        this.list.insertAfter(this.cursor, obj);
+    }
+};
+    
+//
+//    DoublyLinkedListListIterator
+//
+function DoublyLinkedListListIterator(list, start = 0) {
+    MutableListListIterator.call(this, list);
+    this.cursor = new Dcursor(list)
+    
+    if ( start < 0 ) {
+        throw new Error(`Invalid cursor index: ${start}`);
+    } else if ( start > 0 ) {
+        this.cursor.advance(start);
+    }
+}
+
+DoublyLinkedListListIterator.prototype = Object.create(MutableListListIterator.prototype);
+DoublyLinkedListListIterator.prototype.constructor = DoublyLinkedListListIterator;
+Object.defineProperty(DoublyLinkedListListIterator.prototype, "constructor", {enumerable: false, configurable: false});
+
+DoublyLinkedListListIterator.prototype.doDoCurrent = function() {
+    return this.cursor.node.getContent();
+};
+
+DoublyLinkedListListIterator.prototype.doDoCurrentIndex = function() {
+    return this.cursor.index;
+};
+
+DoublyLinkedListListIterator.prototype.doDoSetCurrent = function(obj) {
+    this.cursor.node.setContent(obj);
+};
+
+DoublyLinkedListListIterator.prototype.doHasNext = function() {
+    return !this.cursor.atEnd();
+};
+
+DoublyLinkedListListIterator.prototype.doHasPrevious = function() {
+    return !this.cursor.atStart();
+};
+
+DoublyLinkedListListIterator.prototype.doNext = function() {
+    if ( this.hasNext() ) {
+        this.cursor.advance();
+        
+        return this.current();
+    } else {
+        return null;
+    }
+};
+
+DoublyLinkedListListIterator.prototype.doPrevious = function() {
+    if ( this.hasPrevious() ) {
+        this.cursor.rewind();
+
+        return this.current();
+    } else {
+        return null;
+    }
+};
+
+DoublyLinkedListListIterator.prototype.doDoRemove = function() {
+    if ( this.cursor.index === 0 ) {
+        let doomed = this.list.deleteNode(this.cursor.node);
+        this.cursor.reset();
+
+        return doomed;
+    } else {
+        let currentNode = this.cursor.node;
+
+        if ( this.hasNext() ) {
+            this.cursor.bump();
+        } else {
+            this.cursor.rewind();
+        }
+
+        return this.list.deleteNode(currentNode);
+    }
+};
+
+DoublyLinkedListListIterator.prototype.doAddBefore = function(obj) {
+    if ( this.isEmpty() ) {
+        this.list.add(obj);
+        this.cursor.reset();
+    } else {
+        this.list.insertBefore(this.cursor.node, obj);
+        this.cursor.index++;
+    }
+};
+
+DoublyLinkedListListIterator.prototype.doAddAfter = function(obj) {
+    if ( this.isEmpty() ) {
+        this.list.add(obj);
+        this.cursor.reset();
+    } else {
+        this.list.insertAfter(this.cursor.node, obj);
+    }
+};
+
+//
+//    PersistentListListIterator
+//
+function PersistentListListIterator(list, start = 0) {
+    this.list = list;
+    this.cursor = list.store;
+    this.index = 0;
+    this.history = new PersistentStack();
+
+    if ( start < 0 ) {
+        throw new Error(`Invalid cursor index: ${start}`);
+    }
+
+    for (let i = 0; i < Math.min(start, list.size() - 1); i++) {
+        this.history = this.history.push(this.cursor);
+        this.cursor = this.cursor.rest();
+        this.index++;
+    }
+}
+
+PersistentListListIterator.prototype = Object.create(ListIterator.prototype);
+PersistentListListIterator.prototype.constructor = PersistentListListIterator;
+Object.defineProperty(PersistentListListIterator.prototype, "constructor", {enumerable: false, configurable: false});
+
+// PersistentListListIterator.prototype.type = 
+//     def type
+//       @list.type
+//     end
+
+PersistentListListIterator.initializeIterator = function(list, index, cursor, history) {
+    let iterator = new PersistentListListIterator(list);
+    iterator.cursor = cursor;
+    iterator.index = index;
+    iterator.history = history;
+
+    return iterator;
+}
+
+PersistentListListIterator.prototype.doCurrent = function() {
+    return this.cursor.first();
+};
+
+PersistentListListIterator.prototype.doCurrentIndex = function() {
+    return this.index;
+};
+
+PersistentListListIterator.prototype.doSetCurrent = function(obj) {
+    return this.list.set(this.index, obj).listIterator(this.index);
+};
+
+PersistentListListIterator.prototype.hasNext = function() {
+    return this.cursor.rest() !== null;
+};
+
+PersistentListListIterator.prototype.hasPrevious = function() {
+    return !this.history.isEmpty();
+};
+
+PersistentListListIterator.prototype.doNext = function() {
+    if ( this.hasNext() ) {
+        return PersistentListListIterator.initializeIterator(this.list, this.index+1, this.cursor.rest(), this.history.push(this.cursor));
+    } else {
+        return null;
+    }
+};
+
+PersistentListListIterator.prototype.doPrevious = function() {
+    if ( this.hasNext() ) {
+        return PersistentListListIterator.initializeIterator(this.list, this.index-1, this.history.peek(), this.history.pop());
+    } else {
+        return null;
+    }
+};
+
+PersistentListListIterator.prototype.doRemove = function() {
+    let list = this.list.delete(this.index);
+    return list.listIterator(Math.min(this.index, list.size()-1));
+};
+
+PersistentListListIterator.prototype.addBefore = function(obj) {
+    if ( this.isEmpty() ) {
+        return this.list.add(obj).listIterator();
+    } else {
+        return this.list.insert(this.index, obj).listIterator(this.index + 1);
+    }
+};
+
+PersistentListListIterator.prototype.addAfter = function(obj) {
+    if ( this.isEmpty() ) {
+        return this.list.add(obj).listIterator();
+    } else {
+        return this.list.insert(this.index + 1, obj).listIterator(this.index);
     }
 };
