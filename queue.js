@@ -500,3 +500,81 @@ HashDeque.prototype.doFront = function(obj) {
 HashDeque.prototype.doRear = function(obj) {
     return this.store[this.tail];
 };
+
+//
+//    PersistentDeque
+//
+function PersistentDeque() {
+    this.head = null;
+    this.tail = null;
+    this.count = 0;
+}
+
+PersistentDeque.prototype = Object.create(Deque.prototype);
+PersistentDeque.prototype.constructor = PersistentDeque;
+Object.defineProperty(PersistentDeque.prototype, "constructor", {enumerable: false, configurable: false});
+
+PersistentDeque.prototype.size = function() {
+    return this.count;
+};
+
+PersistentDeque.prototype.clear = function() {
+    return new PersistentDeque();
+};
+
+PersistentDeque.initializeDeque = function(head, tail, count) {
+    let newDeque = new PersistentDeque();
+    newDeque.head = head;
+    newDeque.tail = tail
+    newDeque.count = count;
+
+    return newDeque;
+};
+
+PersistentDeque.prototype.enqueue = function(obj) {
+    if ( this.isEmpty() ) {
+        return PersistentDeque.initializeDeque(new Node(obj, null), new Node(obj, null), 1);
+    } else {
+        return PersistentDeque.initializeDeque(this.head, new Node(obj, this.tail), this.count+1);
+    }
+};
+
+PersistentDeque.prototype.enqueueFront = function(obj) {
+    if ( this.isEmpty() ) {
+        return PersistentDeque.initializeDeque(new Node(obj, null), new Node(obj, null), 1);
+    } else {
+        return PersistentDeque.initializeDeque(new Node(obj, this.head), this.tail, this.count+1);
+    }
+};
+
+PersistentDeque.prototype.doDequeue = function() {
+    if ( this.head.rest() === null ) {
+        if ( this.tail.rest() === null ) {
+            return this.clear();
+        } else {
+            return PersistentDeque.initializeDeque(Node.reverse(this.tail).rest(), new Node(this.rear(), null), this.count-1);
+        }
+    } else {
+        return PersistentDeque.initializeDeque(this.head.rest(), this.tail, this.count-1);
+    }
+};
+
+PersistentDeque.prototype.doDequeueRear = function() {
+    if ( this.tail.rest() === null ) {
+        if ( this.head.rest() === null ) {
+            return this.clear();
+        } else {
+            return PersistentDeque.initializeDeque(new Node(this.front(), null), Node.reverse(this.head).rest(), this.count-1);
+        }
+    } else {
+        return PersistentDeque.initializeDeque(this.head, this.tail.rest(), this.count-1);
+    }
+};
+
+PersistentDeque.prototype.doFront = function() {
+    return this.head.first();
+};
+
+PersistentDeque.prototype.doRear = function() {
+    return this.tail.first();
+};
