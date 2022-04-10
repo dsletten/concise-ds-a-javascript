@@ -1587,7 +1587,7 @@ PersistentListIterator.prototype.next = function() {
     if ( this.isDone() ) {
         return this;
     } else {
-        return new PersistentListIterator(this.collection.delete(0));
+        return this.collection.delete(0).iterator();
     }
 };
 
@@ -1714,12 +1714,16 @@ MutableListListIterator.prototype.comodified = function() {
     return this.expectedModificationCount !== this.list.modificationCount;
 };
 
-MutableListListIterator.prototype.doCurrent = function() {
+MutableListListIterator.prototype.checkComodification = function() {
     if ( this.comodified() ) {
         throw new Error("List iterator invalid due to structural modification of collection.");
-    } else {
-        return this.doDoCurrent();
     }
+};
+    
+MutableListListIterator.prototype.doCurrent = function() {
+    checkComodification();
+
+    return this.doDoCurrent();
 };
 
 MutableListListIterator.prototype.doDoCurrent = function() {
@@ -1727,11 +1731,9 @@ MutableListListIterator.prototype.doDoCurrent = function() {
 };
 
 MutableListListIterator.prototype.doCurrentIndex = function() {
-    if ( this.comodified() ) {
-        throw new Error("List iterator invalid due to structural modification of collection.");
-    } else {
-        return this.doDoCurrentIndex();
-    }
+    checkComodification();
+
+    return this.doDoCurrentIndex();
 };
 
 MutableListListIterator.prototype.doDoCurrentIndex = function() {
@@ -1739,11 +1741,9 @@ MutableListListIterator.prototype.doDoCurrentIndex = function() {
 };
 
 MutableListListIterator.prototype.doSetCurrent = function(obj) {
-    if ( this.comodified() ) {
-        throw new Error("List iterator invalid due to structural modification of collection.");
-    } else {
-        return this.doDoSetCurrent(obj);
-    }
+    checkComodification();
+
+    return this.doDoSetCurrent(obj);
 };
 
 MutableListListIterator.prototype.doDoSetCurrent = function(obj) {
@@ -1751,11 +1751,9 @@ MutableListListIterator.prototype.doDoSetCurrent = function(obj) {
 };
 
 MutableListListIterator.prototype.hasNext = function() {
-    if ( this.comodified() ) {
-        throw new Error("List iterator invalid due to structural modification of collection.");
-    } else {
-        return this.doHasNext();
-    }
+    checkComodification();
+
+    return this.doHasNext();
 };
 
 MutableListListIterator.prototype.doHasNext = function() {
@@ -1763,11 +1761,9 @@ MutableListListIterator.prototype.doHasNext = function() {
 };
 
 MutableListListIterator.prototype.hasPrevious = function() {
-    if ( this.comodified() ) {
-        throw new Error("List iterator invalid due to structural modification of collection.");
-    } else {
-        return this.doHasPrevious();
-    }
+    checkComodification();
+
+    return this.doHasPrevious();
 };
 
 MutableListListIterator.prototype.doHasPrevious = function() {
@@ -1775,11 +1771,9 @@ MutableListListIterator.prototype.doHasPrevious = function() {
 };
 
 MutableListListIterator.prototype.doNext = function() {
-    if ( this.comodified() ) {
-        throw new Error("List iterator invalid due to structural modification of collection.");
-    } else {
-        return this.doDoNext();
-    }
+    checkComodification();
+
+    return this.doDoNext();
 };
 
 MutableListListIterator.prototype.doDoNext = function() {
@@ -1787,11 +1781,9 @@ MutableListListIterator.prototype.doDoNext = function() {
 };
 
 MutableListListIterator.prototype.doPrevious = function() {
-    if ( this.comodified() ) {
-        throw new Error("List iterator invalid due to structural modification of collection.");
-    } else {
-        return this.doDoPrevious();
-    }
+    checkComodification();
+
+    return this.doDoPrevious();
 };
 
 MutableListListIterator.prototype.doDoPrevious = function() {
@@ -1799,13 +1791,11 @@ MutableListListIterator.prototype.doDoPrevious = function() {
 };
 
 MutableListListIterator.prototype.doRemove = function() {
-    if ( this.comodified() ) {
-        throw new Error("List iterator invalid due to structural modification of collection.");
-    } else {
-        let doomed = this.doDoRemove();
-        this.countModification();
-        return doomed;
-    }
+    checkComodification();
+
+    let doomed = this.doDoRemove();
+    this.countModification();
+    return doomed;
 };
 
 MutableListListIterator.prototype.doDoRemove = function() {
@@ -1813,12 +1803,10 @@ MutableListListIterator.prototype.doDoRemove = function() {
 };
 
 MutableListListIterator.prototype.addBefore = function(obj) {
-    if ( this.comodified() ) {
-        throw new Error("List iterator invalid due to structural modification of collection.");
-    } else {
-        this.doAddBefore(obj);
-        this.countModification();
-    }
+    checkComodification();
+
+    this.doAddBefore(obj);
+    this.countModification();
 };
 
 MutableListListIterator.prototype.doAddBefore = function(obj) {
@@ -1826,12 +1814,10 @@ MutableListListIterator.prototype.doAddBefore = function(obj) {
 };
 
 MutableListListIterator.prototype.addAfter = function(obj) {
-    if ( this.comodified() ) {
-        throw new Error("List iterator invalid due to structural modification of collection.");
-    } else {
-        this.doAddAfter(obj);
-        this.countModification();
-    }
+    checkComodification();
+
+    this.doAddAfter(obj);
+    this.countModification();
 };
 
 MutableListListIterator.prototype.doAddAfter = function(obj) {

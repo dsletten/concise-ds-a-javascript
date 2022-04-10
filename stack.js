@@ -139,6 +139,41 @@ LinkedStack.prototype.doPeek = function() {
 };
 
 //
+//     LinkedListStack
+//
+function LinkedListStack() {
+    this.list = new SinglyLinkedList();
+}
+
+LinkedListStack.prototype = Object.create(Stack.prototype);
+LinkedListStack.prototype.constructor = LinkedListStack;
+Object.defineProperty(LinkedListStack.prototype, "constructor", {enumerable: false, configurable: false});
+
+LinkedListStack.prototype.size = function() {
+    return this.list.size();
+};
+
+LinkedListStack.prototype.isEmpty = function() {
+    return this.list.isEmpty();
+};
+
+LinkedListStack.prototype.clear = function() {
+    this.list.clear();
+};
+
+LinkedListStack.prototype.push = function(obj) {
+    this.list.insert(0, obj);
+};
+
+LinkedListStack.prototype.doPop = function() {
+    return this.list.delete(0);
+};
+
+LinkedListStack.prototype.doPeek = function() {
+    return this.list.get(0);
+};
+
+//
 //    HashStack
 //
 function HashStack() {
@@ -221,4 +256,49 @@ PersistentStack.prototype.doPop = function() {
 
 PersistentStack.prototype.doPeek = function() {
     return this.top.first();
+};
+
+//
+//     PersistentListStack
+//     
+function PersistentListStack() {
+    this.list = PersistentListStack.empty;
+}
+
+PersistentListStack.prototype = Object.create(Stack.prototype);
+PersistentListStack.prototype.constructor = PersistentListStack;
+Object.defineProperty(PersistentListStack.prototype, "constructor", {enumerable: false, configurable: false});
+
+PersistentListStack.empty = new PersistentList();
+Object.defineProperty(PersistentListStack, "empty", {enumerable: false, configurable: false});
+
+PersistentListStack.initializeStack = function(list) {
+    let newStack = new PersistentListStack();
+    newStack.list = list;
+
+    return newStack;
+};
+
+PersistentListStack.prototype.size = function() {
+    return this.list.size();
+};
+
+PersistentListStack.prototype.isEmpty = function() {
+    return this.list.isEmpty();
+};
+
+PersistentListStack.prototype.clear = function() {
+    return new PersistentListStack();
+};
+
+PersistentListStack.prototype.push = function(obj) {
+    return PersistentListStack.initializeStack(this.list.insert(0, obj));
+};
+
+PersistentListStack.prototype.doPop = function() {
+    return PersistentListStack.initializeStack(this.list.delete(0));
+};
+
+PersistentListStack.prototype.doPeek = function() {
+    return this.list.get(0);
 };

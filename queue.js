@@ -168,6 +168,37 @@ LinkedQueue.prototype.doFront = function() {
 };
 
 //
+//     SinglyLinkedListQueue
+//     
+function SinglyLinkedListQueue() {
+    this.list = new SinglyLinkedList();
+}
+
+SinglyLinkedListQueue.prototype = Object.create(Queue.prototype);
+SinglyLinkedListQueue.prototype.constructor = SinglyLinkedListQueue;
+Object.defineProperty(SinglyLinkedListQueue.prototype, "constructor", {enumerable: false, configurable: false});
+
+SinglyLinkedListQueue.prototype.size = function() {
+    return this.list.size();
+};
+
+SinglyLinkedListQueue.prototype.clear = function() {
+    this.list.clear();
+};
+
+SinglyLinkedListQueue.prototype.enqueue = function(obj) {
+    this.list.add(obj);
+};
+
+SinglyLinkedListQueue.prototype.doDequeue = function() {
+    return this.list.delete(0);
+};
+
+SinglyLinkedListQueue.prototype.doFront = function() {
+    return this.list.get(0);
+};
+
+//
 //     CircularQueue
 //     - This is kind of pointless. Just a variant of LinkedQueue.
 //     
@@ -326,6 +357,47 @@ PersistentQueue.prototype.doDequeue = function() {
 
 PersistentQueue.prototype.doFront = function() {
     return this.head.first();
+};
+
+//
+//    PersistentListQueue
+// 
+function PersistentListQueue() {
+    this.list = PersistentListQueue.empty;
+}
+
+PersistentListQueue.prototype = Object.create(Queue.prototype);
+PersistentListQueue.prototype.constructor = PersistentListQueue;
+Object.defineProperty(PersistentListQueue.prototype, "constructor", {enumerable: false, configurable: false});
+
+PersistentListQueue.empty = new PersistentList();
+Object.defineProperty(PersistentListQueue, "empty", {enumerable: false, configurable: false});
+
+PersistentListQueue.initializeQueue = function(list) {
+    let newQueue = new PersistentListQueue();
+    newQueue.list = list;
+
+    return newQueue;
+};
+
+PersistentListQueue.prototype.size = function() {
+    return this.list.size();
+};
+
+PersistentListQueue.prototype.clear = function() {
+    return new PersistentListQueue();
+};
+
+PersistentListQueue.prototype.enqueue = function(obj) {
+    return PersistentListQueue.initializeQueue(this.list.add(obj));
+};
+
+PersistentListQueue.prototype.doDequeue = function() {
+    return PersistentListQueue.initializeQueue(this.list.delete(0));
+};
+
+PersistentListQueue.prototype.doFront = function() {
+    return this.list.get(0);
 };
 
 //

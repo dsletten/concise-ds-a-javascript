@@ -215,15 +215,15 @@ Node.subseq = function(node, start, end) {
 };
 
 Node.sublist = function(node, start, end) {
-    function subseq(l, result, i) {
+    function subseq(l, i, result) {
         if ( i === end  ||  l === null ) {
             return Node.reverse(result);
         } else {
-            return subseq(l.rest(), new Node(l.first(), result), i+1);
+            return subseq(l.rest(), i+1, new Node(l.first(), result));
         }
     }
 
-    return subseq(Node.nthCdr(node, start), null, start);
+    return subseq(Node.nthCdr(node, start), start, null);
 };
 
 Node.append = function(l1, l2) {
@@ -272,6 +272,10 @@ function Iterator() {
     throw new Error("Cannot instantiate Iterator.");
 }
 
+Iterator.prototype.done = function() {
+    throw new Error("Iterator does not implement done().");
+};
+
 Iterator.prototype.current = function() {
     if ( this.isDone() ) {
         throw new Error("Iteration already finished");
@@ -286,10 +290,6 @@ Iterator.prototype.doCurrent = function() {
 
 Iterator.prototype.next = function() {
     throw new Error("Iterator does not implement next().");
-};
-
-Iterator.prototype.done = function() {
-    throw new Error("Iterator does not implement done().");
 };
 
 //
