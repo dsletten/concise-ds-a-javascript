@@ -272,8 +272,8 @@ function Iterator() {
     throw new Error("Cannot instantiate Iterator.");
 }
 
-Iterator.prototype.done = function() {
-    throw new Error("Iterator does not implement done().");
+Iterator.prototype.isDone = function() {
+    throw new Error("Iterator does not implement isDone().");
 };
 
 Iterator.prototype.current = function() {
@@ -308,12 +308,26 @@ MutableCollectionIterator.prototype.comodified = function() {
     return this.expectedModificationCount !== this.collection.modificationCount;
 };
 
-MutableCollectionIterator.prototype.doCurrent = function() {
+MutableCollectionIterator.prototype.checkComodification = function() {
     if ( this.comodified() ) {
-        throw new Error("Iterator invalid due to structural modification of collection");
-    } else {
-        return this.doDoCurrent();
+        throw new Error("Iterator invalid due to structural modification of collection.");
     }
+};
+    
+MutableCollectionIterator.prototype.isDone = function() {
+    this.checkComodification();
+
+    return this.doIsDone();
+};
+
+MutableCollectionIterator.prototype.doIsDone = function() {
+    throw new Error("MutableCollectionIterator does not implement doIsDone().");
+};
+
+MutableCollectionIterator.prototype.doCurrent = function() {
+    this.checkComodification();
+
+    return this.doDoCurrent();
 };
 
 MutableCollectionIterator.prototype.doDoCurrent = function() {
@@ -321,25 +335,11 @@ MutableCollectionIterator.prototype.doDoCurrent = function() {
 };
 
 MutableCollectionIterator.prototype.next = function() {
-    if ( this.comodified() ) {
-        throw new Error("Iterator invalid due to structural modification of collection");
-    } else {
-        return this.doNext();
-    }
+    this.checkComodification();
+
+    return this.doNext();
 };
 
 MutableCollectionIterator.prototype.doNext = function() {
     throw new Error("MutableCollectionIterator does not implement doNext().");
-};
-
-MutableCollectionIterator.prototype.isDone = function() {
-    if ( this.comodified() ) {
-        throw new Error("Iterator invalid due to structural modification of collection");
-    } else {
-        return this.doIsDone();
-    }
-};
-
-MutableCollectionIterator.prototype.doIsDone = function() {
-    throw new Error("MutableCollectionIterator does not implement doIsDone().");
 };

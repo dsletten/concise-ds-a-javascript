@@ -265,160 +265,78 @@ MutableList.prototype.doDoDelete = function(i) {
 };
 
 //
-//    LinkedList
-// 
-function LinkedList(fillElt) {
-    List.call(this, fillElt);
+//    MutableLinkedList
+//
+function MutableLinkedList(fillElt) {
+    MutableList.call(this, fillElt);
 }
 
-LinkedList.prototype = Object.create(List.prototype);
-LinkedList.prototype.constructor = LinkedList;
-Object.defineProperty(LinkedList.prototype, "constructor", {enumerable: false, configurable: false});
+MutableLinkedList.prototype = Object.create(MutableList.prototype);
+MutableLinkedList.prototype.constructor = MutableLinkedList;
+Object.defineProperty(MutableLinkedList.prototype, "constructor", {enumerable: false, configurable: false});
 
-LinkedList.prototype.insertBefore = function(node, obj) {
+MutableLinkedList.prototype.insertBefore = function(node, obj) {
     if ( this.isEmpty() ) {
         throw new Error("List is empty.");
     } else if ( node === null ) {
         throw new Error("Invalid node.");
     } else {
         this.doInsertBefore(node, obj);
+        this.countModification();
     }
 };
 
-LinkedList.prototype.doInsertBefore = function(node, obj) {
-    throw new Error("LinkedList does not implement doInsertBefore().");
+MutableLinkedList.prototype.doInsertBefore = function(node, obj) {
+    throw new Error("MutableLinkedList does not implement doInsertBefore().");
 };
 
-LinkedList.prototype.insertAfter = function(node, obj) {
+MutableLinkedList.prototype.insertAfter = function(node, obj) {
     if ( this.isEmpty() ) {
         throw new Error("List is empty.");
     } else if ( node === null ) {
         throw new Error("Invalid node.");
     } else {
         this.doInsertAfter(node, obj);
+        this.countModification();
     }
 };
 
-LinkedList.prototype.doInsertAfter = function(node, obj) {
-    throw new Error("LinkedList does not implement doInsertAfter().");
+MutableLinkedList.prototype.doInsertAfter = function(node, obj) {
+    throw new Error("MutableLinkedList does not implement doInsertAfter().");
 };
 
-LinkedList.prototype.deleteNode = function(doomed) {
+MutableLinkedList.prototype.deleteNode = function(node) {
     if ( this.isEmpty() ) {
         throw new Error("List is empty.");
-    } else if ( doomed === null ) {
+    } else if ( node === null ) {
         throw new Error("Invalid node.");
     } else {
-        return this.doDeleteNode(doomed);
+        let doomed = this.doDeleteNode(node);
+        this.countModification();
+
+        return doomed;
     }
 };
 
-LinkedList.prototype.doDeleteNode = function(doomed) {
-    throw new Error("LinkedList does not implement doDeleteNode().");
+MutableLinkedList.prototype.doDeleteNode = function(node) {
+    throw new Error("MutableLinkedList does not implement doDeleteNode().");
 };
 
-LinkedList.prototype.deleteChild = function(parent) {
+MutableLinkedList.prototype.deleteChild = function(parent) {
     if ( this.isEmpty() ) {
         throw new Error("List is empty.");
     } else if ( parent === null ) {
         throw new Error("Invalid node.");
     } else {
-        return this.doDeleteChild(parent);
-    }
-};
-
-LinkedList.prototype.doDeleteChild = function(parent) {
-    throw new Error("LinkedList does not implement doDeleteChild().");
-};
-
-//
-//    MutableLinkedList
-//
-function MutableLinkedList(fillElt) {
-    LinkedList.call(this, fillElt);
-    this.modificationCount = 0;
-}
-
-MutableLinkedList.prototype = Object.create(LinkedList.prototype);
-MutableLinkedList.prototype.constructor = MutableLinkedList;
-Object.defineProperty(MutableLinkedList.prototype, "constructor", {enumerable: false, configurable: false});
-
-MutableLinkedList.prototype.countModification = function() {
-    this.modificationCount++;
-};
-
-MutableLinkedList.prototype.clear = function() {
-    this.countModification();
-    this.doClear();
-};
-
-MutableLinkedList.prototype.doClear = function() {
-    throw new Error("MutableLinkedList does not implement doClear().");
-};
-
-MutableLinkedList.prototype.add = function(...objs) {
-    if ( objs.length !== 0 ) {
+        let child = this.doDeleteChild(parent);
         this.countModification();
-        this.doAdd(objs);
+
+        return child;
     }
-};
-
-MutableLinkedList.prototype.doAdd = function(objs) {
-    throw new Error("MutableLinkedList does not implement doAdd().");
-};
-
-MutableLinkedList.prototype.doInsert = function(i, obj) {
-    this.countModification();
-    this.doDoInsert(i, obj);
-};
-
-MutableLinkedList.prototype.doDoInsert = function(i, obj) {
-    throw new Error("MutableLinkedList does not implement doDoInsert().");
-};
-
-MutableLinkedList.prototype.doDelete = function(i) {
-    this.countModification();
-    return this.doDoDelete(i);
-};
-
-MutableLinkedList.prototype.doDoDelete = function(i) {
-    throw new Error("MutableLinkedList does not implement doDoDelete().");
-};
-
-MutableLinkedList.prototype.doInsertBefore = function(node, obj) {
-    this.countModification();
-    this.doDoInsertBefore(node, obj);
-};
-
-MutableLinkedList.prototype.doDoInsertBefore = function(node, obj) {
-    throw new Error("MutableLinkedList does not implement doDoInsertBefore().");
-};
-
-MutableLinkedList.prototype.doInsertAfter = function(node, obj) {
-    this.countModification();
-    this.doDoInsertAfter(node, obj);
-};
-
-MutableLinkedList.prototype.doDoInsertAfter = function(node, obj) {
-    throw new Error("MutableLinkedList does not implement doDoInsertAfter().");
-};
-
-MutableLinkedList.prototype.doDeleteNode = function(doomed) {
-    this.countModification();
-    return this.doDoDeleteNode(doomed);
-};
-
-MutableLinkedList.prototype.doDoDeleteNode = function(doomed) {
-    throw new Error("MutableLinkedList does not implement doDoDeleteNode().");
 };
 
 MutableLinkedList.prototype.doDeleteChild = function(parent) {
-    this.countModification();
-    return this.doDoDeleteChild(parent);
-};
-
-MutableLinkedList.prototype.doDoDeleteChild = function(parent) {
-    throw new Error("MutableLinkedList does not implement doDoDeleteChild().");
+    throw new Error("MutableLinkedList does not implement doDeleteChild().");
 };
 
 //
@@ -593,7 +511,7 @@ SinglyLinkedList.prototype.doDoInsert = function(i, obj) {
     this.count++;
 };
 
-SinglyLinkedList.prototype.doDoInsertBefore = function(node, obj) {
+SinglyLinkedList.prototype.doInsertBefore = function(node, obj) {
     node.spliceBefore(obj);
 
     if ( node === this.rear ) {
@@ -603,7 +521,7 @@ SinglyLinkedList.prototype.doDoInsertBefore = function(node, obj) {
     this.count++;
 };
 
-SinglyLinkedList.prototype.doDoInsertAfter = function(node, obj) {
+SinglyLinkedList.prototype.doInsertAfter = function(node, obj) {
     node.spliceAfter(obj);
 
     if ( node === this.rear ) {
@@ -637,7 +555,7 @@ SinglyLinkedList.prototype.doDoDelete = function(i) {
     }
 };
 
-SinglyLinkedList.prototype.doDoDeleteNode = function(doomed) {
+SinglyLinkedList.prototype.doDeleteNode = function(doomed) {
     if ( doomed === this.front ) {
         let result = this.front.first();
         this.front = this.front.rest();
@@ -660,7 +578,7 @@ SinglyLinkedList.prototype.doDoDeleteNode = function(doomed) {
     }
 };
 
-SinglyLinkedList.prototype.doDoDeleteChild = function(parent) {
+SinglyLinkedList.prototype.doDeleteChild = function(parent) {
     let result = parent.exciseChild();
 
     if ( parent.rest() === null ) {
@@ -1055,7 +973,7 @@ DoublyLinkedList.prototype.doDoInsert = function(i, obj) {
     }
 };
 
-DoublyLinkedList.prototype.doDoInsertBefore = function(node, obj) {
+DoublyLinkedList.prototype.doInsertBefore = function(node, obj) {
     node.spliceBefore(obj)
 
     if ( node === this.store ) {
@@ -1067,7 +985,7 @@ DoublyLinkedList.prototype.doDoInsertBefore = function(node, obj) {
     this.cursor.reset();
 };
 
-DoublyLinkedList.prototype.doDoInsertAfter = function(node, obj) {
+DoublyLinkedList.prototype.doInsertAfter = function(node, obj) {
     node.spliceAfter(obj)
 
     this.count++;
@@ -1083,7 +1001,7 @@ DoublyLinkedList.prototype.doDoDelete = function(i) {
     return doomed;
 };
 
-DoublyLinkedList.prototype.doDoDeleteNode = function(doomed) {
+DoublyLinkedList.prototype.doDeleteNode = function(doomed) {
     let result = this.deleteDcons(doomed);
 
     this.count--;
@@ -1111,7 +1029,7 @@ DoublyLinkedList.prototype.deleteDcons = function(doomed) {
 //
 //    This is not really needed for DoublyLinkedList.
 //    
-DoublyLinkedList.prototype.doDoDeleteChild = function(parent) {
+DoublyLinkedList.prototype.doDeleteChild = function(parent) {
     let child = parent.getNext();
 
     if ( child === this.store ) {
@@ -1716,12 +1634,12 @@ MutableListListIterator.prototype.comodified = function() {
 
 MutableListListIterator.prototype.checkComodification = function() {
     if ( this.comodified() ) {
-        throw new Error("List iterator invalid due to structural modification of collection.");
+        throw new Error("List iterator invalid due to structural modification of list.");
     }
 };
     
 MutableListListIterator.prototype.doCurrent = function() {
-    checkComodification();
+    this.checkComodification();
 
     return this.doDoCurrent();
 };
@@ -1731,7 +1649,7 @@ MutableListListIterator.prototype.doDoCurrent = function() {
 };
 
 MutableListListIterator.prototype.doCurrentIndex = function() {
-    checkComodification();
+    this.checkComodification();
 
     return this.doDoCurrentIndex();
 };
@@ -1741,7 +1659,7 @@ MutableListListIterator.prototype.doDoCurrentIndex = function() {
 };
 
 MutableListListIterator.prototype.doSetCurrent = function(obj) {
-    checkComodification();
+    this.checkComodification();
 
     return this.doDoSetCurrent(obj);
 };
@@ -1751,7 +1669,7 @@ MutableListListIterator.prototype.doDoSetCurrent = function(obj) {
 };
 
 MutableListListIterator.prototype.hasNext = function() {
-    checkComodification();
+    this.checkComodification();
 
     return this.doHasNext();
 };
@@ -1761,7 +1679,7 @@ MutableListListIterator.prototype.doHasNext = function() {
 };
 
 MutableListListIterator.prototype.hasPrevious = function() {
-    checkComodification();
+    this.checkComodification();
 
     return this.doHasPrevious();
 };
@@ -1771,7 +1689,7 @@ MutableListListIterator.prototype.doHasPrevious = function() {
 };
 
 MutableListListIterator.prototype.doNext = function() {
-    checkComodification();
+    this.checkComodification();
 
     return this.doDoNext();
 };
@@ -1781,7 +1699,7 @@ MutableListListIterator.prototype.doDoNext = function() {
 };
 
 MutableListListIterator.prototype.doPrevious = function() {
-    checkComodification();
+    this.checkComodification();
 
     return this.doDoPrevious();
 };
@@ -1791,7 +1709,7 @@ MutableListListIterator.prototype.doDoPrevious = function() {
 };
 
 MutableListListIterator.prototype.doRemove = function() {
-    checkComodification();
+    this.checkComodification();
 
     let doomed = this.doDoRemove();
     this.countModification();
@@ -1803,7 +1721,7 @@ MutableListListIterator.prototype.doDoRemove = function() {
 };
 
 MutableListListIterator.prototype.addBefore = function(obj) {
-    checkComodification();
+    this.checkComodification();
 
     this.doAddBefore(obj);
     this.countModification();
@@ -1814,7 +1732,7 @@ MutableListListIterator.prototype.doAddBefore = function(obj) {
 };
 
 MutableListListIterator.prototype.addAfter = function(obj) {
-    checkComodification();
+    this.checkComodification();
 
     this.doAddAfter(obj);
     this.countModification();
@@ -1863,7 +1781,7 @@ RandomAccessListListIterator.prototype.doHasPrevious = function() {
     return this.cursor > 0;
 };
 
-RandomAccessListListIterator.prototype.doNext = function() {
+RandomAccessListListIterator.prototype.doDoNext = function() {
     if ( this.hasNext() ) {
         this.cursor++;
         return this.current();
@@ -1872,7 +1790,7 @@ RandomAccessListListIterator.prototype.doNext = function() {
     }
 };
 
-RandomAccessListListIterator.prototype.doPrevious = function() {
+RandomAccessListListIterator.prototype.doDoPrevious = function() {
     if ( this.hasPrevious() ) {
         this.cursor--;
         return this.current();
@@ -1950,10 +1868,10 @@ SinglyLinkedListListIterator.prototype.doHasNext = function() {
 };
 
 SinglyLinkedListListIterator.prototype.doHasPrevious = function() {
-    return !(this.cursor === null  ||  this.cursor === this.store);
+    return !(this.cursor === null  ||  this.cursor === this.list.front);
 };
 
-SinglyLinkedListListIterator.prototype.doNext = function() {
+SinglyLinkedListListIterator.prototype.doDoNext = function() {
     if ( this.hasNext() ) {
         this.history.push(this.cursor);
         this.cursor = this.cursor.rest();
@@ -1965,7 +1883,7 @@ SinglyLinkedListListIterator.prototype.doNext = function() {
     }
 };
 
-SinglyLinkedListListIterator.prototype.doPrevious = function() {
+SinglyLinkedListListIterator.prototype.doDoPrevious = function() {
     if ( this.hasPrevious() ) {
         this.cursor = this.history.pop();
         this.index--;
@@ -2055,7 +1973,7 @@ DoublyLinkedListListIterator.prototype.doHasPrevious = function() {
     return !this.cursor.atStart();
 };
 
-DoublyLinkedListListIterator.prototype.doNext = function() {
+DoublyLinkedListListIterator.prototype.doDoNext = function() {
     if ( this.hasNext() ) {
         this.cursor.advance();
         
@@ -2065,7 +1983,7 @@ DoublyLinkedListListIterator.prototype.doNext = function() {
     }
 };
 
-DoublyLinkedListListIterator.prototype.doPrevious = function() {
+DoublyLinkedListListIterator.prototype.doDoPrevious = function() {
     if ( this.hasPrevious() ) {
         this.cursor.rewind();
 
