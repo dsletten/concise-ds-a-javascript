@@ -360,7 +360,29 @@ ArrayList.prototype.isEmpty = function() {
 };
 
 ArrayList.prototype.iterator = function() {
-    return new RandomAccessListIterator(this);
+    let cursor = 0;
+    let list = this;
+
+    function done() {
+        if ( cursor > list.size() ) {
+            throw new Error(`Index is out of bounds: ${cursor}`);
+        }
+        return cursor === list.size();
+    }
+
+    function curr() {
+        return list.get(cursor);
+    }
+
+    function advance () {
+        cursor++;
+    }
+
+    function  modificationCount() {
+        return list.modificationCount;
+    }
+
+    return new MutableCollectionIterator(done, curr, advance, modificationCount);
 };
     
 ArrayList.prototype.listIterator = function(start = 0) {
@@ -407,40 +429,6 @@ ArrayList.prototype.doSlice = function(i, n) {
 };
 
 //
-//     RandomAccessListIterator
-//
-function RandomAccessListIterator(collection) {
-    MutableCollectionIterator.call(this, collection);
-    this.cursor = 0;
-}
-
-RandomAccessListIterator.prototype = Object.create(MutableCollectionIterator.prototype);
-RandomAccessListIterator.prototype.constructor = RandomAccessListIterator;
-Object.defineProperty(RandomAccessListIterator.prototype, "constructor", {enumerable: false, configurable: false});
-
-RandomAccessListIterator.prototype.doDoCurrent = function() {
-    return this.collection.get(this.cursor);
-};
-
-RandomAccessListIterator.prototype.doNext = function() {
-    if ( this.isDone() ) {
-        return null;
-    } else {
-        this.cursor++;
-
-        if ( this.isDone() ) {
-            return null;
-        } else {
-            return this.current();
-        }
-    }
-};
-
-RandomAccessListIterator.prototype.doIsDone = function() {
-    return this.cursor === this.collection.size(); // >=
-};
-
-//
 //    SinglyLinkedList
 // 
 function SinglyLinkedList(fillElt) {
@@ -469,7 +457,26 @@ SinglyLinkedList.prototype.doClear = function() {
 };    
 
 SinglyLinkedList.prototype.iterator = function() {
-    return new SinglyLinkedListIterator(this);
+    let cursor = this.front;
+    let list = this;
+
+    function done() {
+        return cursor === null;
+    }
+
+    function curr() {
+        return cursor.first();
+    }
+
+    function advance () {
+        cursor = cursor.rest();
+    }
+
+    function  modificationCount() {
+        return list.modificationCount;
+    }
+
+    return new MutableCollectionIterator(done, curr, advance, modificationCount);
 };
 
 SinglyLinkedList.prototype.listIterator = function(start = 0) {
@@ -608,39 +615,6 @@ SinglyLinkedList.prototype.doSlice = function(i, n) {
     return sll;
 };
     
-//
-//     SinglyLinkedListIterator
-//
-function SinglyLinkedListIterator(collection) {
-    MutableCollectionIterator.call(this, collection);
-    this.cursor = collection.front;
-};
-
-SinglyLinkedListIterator.prototype = Object.create(MutableCollectionIterator.prototype);
-SinglyLinkedListIterator.prototype.constructor = SinglyLinkedListIterator;
-Object.defineProperty(SinglyLinkedListIterator.prototype, "constructor", {enumerable: false, configurable: false});
-
-SinglyLinkedListIterator.prototype.doDoCurrent = function() {
-    return this.cursor.first();
-};
-
-SinglyLinkedListIterator.prototype.doIsDone = function() {
-    return this.cursor === null;
-};
-
-SinglyLinkedListIterator.prototype.doNext = function() {
-    if ( this.isDone() ) {
-        return null;
-    } else {
-        this.cursor = this.cursor.rest();
-        
-        if ( this.isDone() ) {
-            return null;
-        } else {
-            return this.current();
-        }
-    }
-};
 
 //
 //     Dcons
@@ -741,9 +715,10 @@ Dcons.prototype.exciseChild = function() {
 //
 //     Dcursor
 //
-function Dcursor(list) {
-    this.list = list;
-    this.node = this.list.store; // ??
+function Dcursor(headNode, size) {
+    this.headNode = headNode;
+    this.size = size;
+    this.node = this.headNode();
     this.index = 0;
 }
 
@@ -752,7 +727,7 @@ Dcursor.prototype.isInitialized = function() {
 };
 
 Dcursor.prototype.reset = function() {
-    this.node = this.list.store;
+    this.node = this.headNode();
     this.index = 0;
 };
 
@@ -761,7 +736,7 @@ Dcursor.prototype.atStart = function() {
 };
 
 Dcursor.prototype.atEnd = function() {
-    return !this.isInitialized() || this.index === this.list.size() - 1;
+    return !this.isInitialized() || this.index === this.size() - 1;
 };
 
 Dcursor.prototype.advance = function(step = 1) {
@@ -773,7 +748,7 @@ Dcursor.prototype.advance = function(step = 1) {
             this.node = this.node.getNext();
         }
 //        this.index = this.index % this.list.size();
-        this.index = mod(this.index, this.list.size());
+        this.index = mod(this.index, this.size());
     }
 };
 
@@ -786,7 +761,7 @@ Dcursor.prototype.rewind = function(step = 1) {
             this.node = this.node.getPrevious();
         }
 //        this.index = this.index % this.list.size(); // Wrong for negative index!!! % is REM not MOD!!
-        this.index = mod(this.index, this.list.size());
+        this.index = mod(this.index, this.size());
     }
 };
 
@@ -808,7 +783,9 @@ function DoublyLinkedList(fillElt) {
     MutableLinkedList.call(this, fillElt);
     this.store = null;
     this.count = 0;
-    this.cursor = new Dcursor(this);
+    
+    var list = this;
+    this.cursor = new Dcursor(() => {return list.store;}, () => {return list.count;});
 }
 
 DoublyLinkedList.prototype = Object.create(MutableLinkedList.prototype);
@@ -840,7 +817,29 @@ DoublyLinkedList.prototype.doClear = function() {
 };
 
 DoublyLinkedList.prototype.iterator = function() {
-    return new DoublyLinkedListIterator(this);
+    let list = this;
+    let cursor = new Dcursor(() => {return list.store;}, () => {return list.count;});
+    let sealedForYourProtection = true;
+
+    function done() {
+        return !cursor.isInitialized() ||
+            (!sealedForYourProtection  &&  cursor.atStart());
+    }
+
+    function curr() {
+        return cursor.node.getContent(); // ?????
+    }
+
+    function advance () {
+        cursor.advance();
+        sealedForYourProtection = false;
+    }
+
+    function  modificationCount() {
+        return list.modificationCount;
+    }
+
+    return new MutableCollectionIterator(done, curr, advance, modificationCount);
 };
 
 DoublyLinkedList.prototype.listIterator = function(start = 0) {
@@ -1089,47 +1088,6 @@ DoublyLinkedList.prototype.doSet = function(i, obj) {
 };
 
 
-
-
-
-
-//
-//     DoublyLinkedListIterator
-//
-function DoublyLinkedListIterator(collection) {
-    MutableCollectionIterator.call(this, collection);
-    this.cursor = new Dcursor(collection);
-    this.sealedForYourProtection = true;
-};
-
-DoublyLinkedListIterator.prototype = Object.create(MutableCollectionIterator.prototype);
-DoublyLinkedListIterator.prototype.constructor = DoublyLinkedListIterator;
-Object.defineProperty(DoublyLinkedListIterator.prototype, "constructor", {enumerable: false, configurable: false});
-
-DoublyLinkedListIterator.prototype.doDoCurrent = function() {
-    return this.cursor.node.getContent();
-};
-
-DoublyLinkedListIterator.prototype.doIsDone = function() {
-    return !this.cursor.isInitialized()  ||
-        (!this.sealedForYourProtection  &&  this.cursor.atStart());
-};
-
-DoublyLinkedListIterator.prototype.doNext = function() {
-    if ( this.isDone() ) {
-        return null;
-    } else {
-        this.cursor.advance();
-        this.sealedForYourProtection = false;
-
-        if ( this.isDone() ) {
-            return null;
-        } else {
-            return this.current();
-        }
-    }
-};
-
 //
 //     HashTableList
 //     
@@ -1152,7 +1110,29 @@ HashTableList.prototype.isEmpty = function() {
 };
 
 HashTableList.prototype.iterator = function() {
-    return new RandomAccessListIterator(this);
+    let cursor = 0;
+    let list = this;
+
+    function done() {
+        if ( cursor > list.size() ) {
+            throw new Error(`Index is out of bounds: ${cursor}`);
+        }
+        return cursor === list.size();
+    }
+
+    function curr() {
+        return list.get(cursor);
+    }
+
+    function advance () {
+        cursor++;
+    }
+
+    function  modificationCount() {
+        return list.modificationCount;
+    }
+
+    return new MutableCollectionIterator(done, curr, advance, modificationCount);
 };
 
 HashTableList.prototype.doClear = function() {
@@ -1313,7 +1293,21 @@ PersistentList.prototype.clear = function() {
 };
 
 PersistentList.prototype.iterator = function() {
-    return new PersistentListIterator(this);
+    let list = this;
+
+    function done() {
+        return list.isEmpty();
+    }
+
+    function curr() {
+        return list.get(0);
+    }
+
+    function advance () {
+        return list.delete(0).iterator();
+    }
+
+    return new PersistentCollectionIterator(done, curr, advance);
 };
 
 PersistentList.prototype.listIterator = function(start = 0) {
