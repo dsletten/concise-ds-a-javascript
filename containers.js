@@ -268,36 +268,57 @@ Collection.prototype.each = function(op) {
 //
 //    Iterator
 //
-function Iterator() {
-    throw new Error("Cannot instantiate Iterator.");
+function Iterator(done, curr, advance) {
+    this.done = done;
+    this.curr = curr;
+    this.advance = advance;
 }
 
 Iterator.prototype.isDone = function() {
-    throw new Error("Iterator does not implement isDone().");
+    return this.checkDone();
+};
+
+Iterator.prototype.checkDone = function() {
+    return this.done();
 };
 
 Iterator.prototype.current = function() {
     if ( this.isDone() ) {
         throw new Error("Iteration already finished");
     } else {
-        return this.doCurrent();
+        return this.currentElement();
     }
 };
 
-Iterator.prototype.doCurrent = function() {
-    throw new Error("Iterator does not implement doCurrent().");
+Iterator.prototype.currentElement = function() {
+    return this.curr();
+};
+    
+Iterator.prototype.next = function() {
+    if ( this.isDone() ) {
+        return null;
+    } else {
+        this.nextElement();
+
+        if ( this.isDone() ) {
+            return null;
+        } else {
+            return this.current();
+        }
+    }
 };
 
-Iterator.prototype.next = function() {
-    throw new Error("Iterator does not implement next().");
+Iterator.prototype.nextElement = function() {
+    this.advance();
 };
 
 //
 //    MutableCollectionIterator
 // 
-function MutableCollectionIterator(collection) {
-    this.collection = collection;
-    this.expectedModificationCount = collection.modificationCount;
+function MutableCollectionIterator(done, curr, advance, modificationCount) {
+    Iterator.call(this, done, curr, advance);
+    this.modificationCount = modificationCount;
+    this.expectedModificationCount = this.modificationCount();
 }
 
 MutableCollectionIterator.prototype = Object.create(Iterator.prototype);
@@ -305,7 +326,7 @@ MutableCollectionIterator.prototype.constructor = MutableCollectionIterator;
 Object.defineProperty(MutableCollectionIterator.prototype, "constructor", {enumerable: false, configurable: false});
 
 MutableCollectionIterator.prototype.comodified = function() {
-    return this.expectedModificationCount !== this.collection.modificationCount;
+    return this.expectedModificationCount !== this.modificationCount();
 };
 
 MutableCollectionIterator.prototype.checkComodification = function() {
@@ -314,32 +335,40 @@ MutableCollectionIterator.prototype.checkComodification = function() {
     }
 };
     
-MutableCollectionIterator.prototype.isDone = function() {
+MutableCollectionIterator.prototype.checkDone = function() {
     this.checkComodification();
 
-    return this.doIsDone();
+    return Iterator.prototype.checkDone.call(this);
 };
 
-MutableCollectionIterator.prototype.doIsDone = function() {
-    throw new Error("MutableCollectionIterator does not implement doIsDone().");
-};
-
-MutableCollectionIterator.prototype.doCurrent = function() {
+MutableCollectionIterator.prototype.currentElement = function() {
     this.checkComodification();
 
-    return this.doDoCurrent();
+    return Iterator.prototype.currentElement.call(this);
 };
 
-MutableCollectionIterator.prototype.doDoCurrent = function() {
-    throw new Error("MutableCollectionIterator does not implement doDoCurrent().");
-};
-
-MutableCollectionIterator.prototype.next = function() {
+MutableCollectionIterator.prototype.nextElement = function() {
     this.checkComodification();
 
-    return this.doNext();
+    Iterator.prototype.nextElement.call(this);
 };
 
-MutableCollectionIterator.prototype.doNext = function() {
-    throw new Error("MutableCollectionIterator does not implement doNext().");
+//
+//    PersistentCollectionIterator
+// 
+function PersistentCollectionIterator(done, curr, advance) {
+    Iterator.call(this, done, curr, advance);
+}
+
+PersistentCollectionIterator.prototype = Object.create(Iterator.prototype);
+PersistentCollectionIterator.prototype.constructor = PersistentCollectionIterator;
+Object.defineProperty(PersistentCollectionIterator.prototype, "constructor", {enumerable: false, configurable: false});
+
+PersistentCollectionIterator.prototype.next = function() {
+    if ( this.isDone() ) {
+        return this;
+    } else {
+        return this.advance(); // ??????????
+    }
 };
+

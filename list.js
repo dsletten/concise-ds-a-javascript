@@ -39,6 +39,12 @@ function mod(number, divisor) {
     }
 }
 
+function RemoteControl(iface) {
+    for (let p in iface) {
+        this[p] = iface[p];
+    }
+}
+
 //
 //     List
 //     
@@ -360,11 +366,41 @@ ArrayList.prototype.isEmpty = function() {
 };
 
 ArrayList.prototype.iterator = function() {
-    return new RandomAccessListIterator(this);
+    let cursor = 0;
+    let list = this;
+
+    function done() {
+        if ( cursor > list.size() ) {
+            throw new Error(`Index is out of bounds: ${cursor}`);
+        }
+        return cursor === list.size();
+    }
+
+    function curr() {
+        return list.get(cursor);
+    }
+
+    function advance () {
+        cursor++;
+    }
+
+    function  modificationCount() {
+        return list.modificationCount;
+    }
+
+    return new MutableCollectionIterator(done, curr, advance, modificationCount);
 };
     
 ArrayList.prototype.listIterator = function(start = 0) {
-    return new RandomAccessListListIterator(this, start);
+    let list = this;
+
+    function modificationCount() {
+        return list.modificationCount;
+    }
+    
+    return new RandomAccessListListIterator(this,
+                                            new RemoteControl({modificationCount: modificationCount}),
+                                            start);
 };
 
 ArrayList.prototype.doClear = function() {
@@ -407,40 +443,6 @@ ArrayList.prototype.doSlice = function(i, n) {
 };
 
 //
-//     RandomAccessListIterator
-//
-function RandomAccessListIterator(collection) {
-    MutableCollectionIterator.call(this, collection);
-    this.cursor = 0;
-}
-
-RandomAccessListIterator.prototype = Object.create(MutableCollectionIterator.prototype);
-RandomAccessListIterator.prototype.constructor = RandomAccessListIterator;
-Object.defineProperty(RandomAccessListIterator.prototype, "constructor", {enumerable: false, configurable: false});
-
-RandomAccessListIterator.prototype.doDoCurrent = function() {
-    return this.collection.get(this.cursor);
-};
-
-RandomAccessListIterator.prototype.doNext = function() {
-    if ( this.isDone() ) {
-        return null;
-    } else {
-        this.cursor++;
-
-        if ( this.isDone() ) {
-            return null;
-        } else {
-            return this.current();
-        }
-    }
-};
-
-RandomAccessListIterator.prototype.doIsDone = function() {
-    return this.cursor === this.collection.size(); // >=
-};
-
-//
 //    SinglyLinkedList
 // 
 function SinglyLinkedList(fillElt) {
@@ -469,11 +471,43 @@ SinglyLinkedList.prototype.doClear = function() {
 };    
 
 SinglyLinkedList.prototype.iterator = function() {
-    return new SinglyLinkedListIterator(this);
+    let cursor = this.front;
+    let list = this;
+
+    function done() {
+        return cursor === null;
+    }
+
+    function curr() {
+        return cursor.first();
+    }
+
+    function advance () {
+        cursor = cursor.rest();
+    }
+
+    function  modificationCount() {
+        return list.modificationCount;
+    }
+
+    return new MutableCollectionIterator(done, curr, advance, modificationCount);
 };
 
 SinglyLinkedList.prototype.listIterator = function(start = 0) {
-    return new SinglyLinkedListListIterator(this, start);
+    let list = this;
+
+    function modificationCount() {
+        return list.modificationCount;
+    }
+    
+    function headNode() {
+        return list.front;
+    }
+    
+    return new SinglyLinkedListListIterator(this, 
+                                            new RemoteControl({modificationCount: modificationCount,
+                                                               headNode: headNode}),
+                                            start);
 };
 
 SinglyLinkedList.prototype.contains = function(obj, test = (item, elt) => item === elt) {
@@ -608,39 +642,6 @@ SinglyLinkedList.prototype.doSlice = function(i, n) {
     return sll;
 };
     
-//
-//     SinglyLinkedListIterator
-//
-function SinglyLinkedListIterator(collection) {
-    MutableCollectionIterator.call(this, collection);
-    this.cursor = collection.front;
-};
-
-SinglyLinkedListIterator.prototype = Object.create(MutableCollectionIterator.prototype);
-SinglyLinkedListIterator.prototype.constructor = SinglyLinkedListIterator;
-Object.defineProperty(SinglyLinkedListIterator.prototype, "constructor", {enumerable: false, configurable: false});
-
-SinglyLinkedListIterator.prototype.doDoCurrent = function() {
-    return this.cursor.first();
-};
-
-SinglyLinkedListIterator.prototype.doIsDone = function() {
-    return this.cursor === null;
-};
-
-SinglyLinkedListIterator.prototype.doNext = function() {
-    if ( this.isDone() ) {
-        return null;
-    } else {
-        this.cursor = this.cursor.rest();
-        
-        if ( this.isDone() ) {
-            return null;
-        } else {
-            return this.current();
-        }
-    }
-};
 
 //
 //     Dcons
@@ -741,9 +742,9 @@ Dcons.prototype.exciseChild = function() {
 //
 //     Dcursor
 //
-function Dcursor(list) {
-    this.list = list;
-    this.node = this.list.store; // ??
+function Dcursor(remoteControl) {
+    this.remoteControl = remoteControl;
+    this.node = this.remoteControl.headNode();
     this.index = 0;
 }
 
@@ -752,7 +753,7 @@ Dcursor.prototype.isInitialized = function() {
 };
 
 Dcursor.prototype.reset = function() {
-    this.node = this.list.store;
+    this.node = this.remoteControl.headNode();
     this.index = 0;
 };
 
@@ -761,7 +762,7 @@ Dcursor.prototype.atStart = function() {
 };
 
 Dcursor.prototype.atEnd = function() {
-    return !this.isInitialized() || this.index === this.list.size() - 1;
+    return !this.isInitialized() || this.index === this.remoteControl.size() - 1;
 };
 
 Dcursor.prototype.advance = function(step = 1) {
@@ -773,7 +774,7 @@ Dcursor.prototype.advance = function(step = 1) {
             this.node = this.node.getNext();
         }
 //        this.index = this.index % this.list.size();
-        this.index = mod(this.index, this.list.size());
+        this.index = mod(this.index, this.remoteControl.size());
     }
 };
 
@@ -786,7 +787,7 @@ Dcursor.prototype.rewind = function(step = 1) {
             this.node = this.node.getPrevious();
         }
 //        this.index = this.index % this.list.size(); // Wrong for negative index!!! % is REM not MOD!!
-        this.index = mod(this.index, this.list.size());
+        this.index = mod(this.index, this.remoteControl.size());
     }
 };
 
@@ -808,12 +809,28 @@ function DoublyLinkedList(fillElt) {
     MutableLinkedList.call(this, fillElt);
     this.store = null;
     this.count = 0;
-    this.cursor = new Dcursor(this);
+    
+    var list = this;
+    this.cursor = this.setupCursor();
 }
 
 DoublyLinkedList.prototype = Object.create(MutableLinkedList.prototype);
 DoublyLinkedList.prototype.constructor = DoublyLinkedList;
 Object.defineProperty(DoublyLinkedList.prototype, "constructor", {enumerable: false, configurable: false});
+
+DoublyLinkedList.prototype.setupCursor = function() {
+    let list = this;
+
+    function headNode() {
+        return list.store;
+    }
+
+    function size() {
+        return list.count;
+    }
+    
+    return new Dcursor(new RemoteControl({headNode: headNode, size: size}));
+};
 
 DoublyLinkedList.prototype.size = function() {
     return this.count;
@@ -840,11 +857,46 @@ DoublyLinkedList.prototype.doClear = function() {
 };
 
 DoublyLinkedList.prototype.iterator = function() {
-    return new DoublyLinkedListIterator(this);
+    let list = this;
+    let cursor = this.setupCursor();
+    let sealedForYourProtection = true;
+
+    function done() {
+        return !cursor.isInitialized() ||
+            (!sealedForYourProtection  &&  cursor.atStart());
+    }
+
+    function curr() {
+        return cursor.node.getContent(); // ?????
+    }
+
+    function advance () {
+        cursor.advance();
+        sealedForYourProtection = false;
+    }
+
+    function  modificationCount() {
+        return list.modificationCount;
+    }
+
+    return new MutableCollectionIterator(done, curr, advance, modificationCount);
 };
 
 DoublyLinkedList.prototype.listIterator = function(start = 0) {
-    return new DoublyLinkedListListIterator(this, start);
+    let list = this;
+
+    function modificationCount() {
+        return list.modificationCount;
+    }
+    
+    function initialize() {
+        return list.setupCursor();
+    }
+    
+    return new DoublyLinkedListListIterator(this,
+                                            new RemoteControl({modificationCount: modificationCount,
+                                                               initialize: initialize}),
+                                            start);
 };
 
 DoublyLinkedList.prototype.contains = function(obj, test = (item, elt) => item === elt) {
@@ -1089,47 +1141,6 @@ DoublyLinkedList.prototype.doSet = function(i, obj) {
 };
 
 
-
-
-
-
-//
-//     DoublyLinkedListIterator
-//
-function DoublyLinkedListIterator(collection) {
-    MutableCollectionIterator.call(this, collection);
-    this.cursor = new Dcursor(collection);
-    this.sealedForYourProtection = true;
-};
-
-DoublyLinkedListIterator.prototype = Object.create(MutableCollectionIterator.prototype);
-DoublyLinkedListIterator.prototype.constructor = DoublyLinkedListIterator;
-Object.defineProperty(DoublyLinkedListIterator.prototype, "constructor", {enumerable: false, configurable: false});
-
-DoublyLinkedListIterator.prototype.doDoCurrent = function() {
-    return this.cursor.node.getContent();
-};
-
-DoublyLinkedListIterator.prototype.doIsDone = function() {
-    return !this.cursor.isInitialized()  ||
-        (!this.sealedForYourProtection  &&  this.cursor.atStart());
-};
-
-DoublyLinkedListIterator.prototype.doNext = function() {
-    if ( this.isDone() ) {
-        return null;
-    } else {
-        this.cursor.advance();
-        this.sealedForYourProtection = false;
-
-        if ( this.isDone() ) {
-            return null;
-        } else {
-            return this.current();
-        }
-    }
-};
-
 //
 //     HashTableList
 //     
@@ -1152,7 +1163,41 @@ HashTableList.prototype.isEmpty = function() {
 };
 
 HashTableList.prototype.iterator = function() {
-    return new RandomAccessListIterator(this);
+    let cursor = 0;
+    let list = this;
+
+    function done() {
+        if ( cursor > list.size() ) {
+            throw new Error(`Index is out of bounds: ${cursor}`);
+        }
+        return cursor === list.size();
+    }
+
+    function curr() {
+        return list.get(cursor);
+    }
+
+    function advance () {
+        cursor++;
+    }
+
+    function  modificationCount() {
+        return list.modificationCount;
+    }
+
+    return new MutableCollectionIterator(done, curr, advance, modificationCount);
+};
+
+HashTableList.prototype.listIterator = function(start = 0) {
+    let list = this;
+
+    function modificationCount() {
+        return list.modificationCount;
+    }
+    
+    return new RandomAccessListListIterator(this,
+                                            new RemoteControl({modificationCount: modificationCount}),
+                                            start);
 };
 
 HashTableList.prototype.doClear = function() {
@@ -1183,6 +1228,7 @@ HashTableList.prototype.doDoInsert = function(i, obj) {
     }
 
     this.store[i] = obj;
+    this.count++;
 };
     
 HashTableList.prototype.doDoDelete = function(i) {
@@ -1313,11 +1359,31 @@ PersistentList.prototype.clear = function() {
 };
 
 PersistentList.prototype.iterator = function() {
-    return new PersistentListIterator(this);
+    let list = this;
+
+    function done() {
+        return list.isEmpty();
+    }
+
+    function curr() {
+        return list.get(0);
+    }
+
+    function advance () {
+        return list.delete(0).iterator();
+    }
+
+    return new PersistentCollectionIterator(done, curr, advance);
 };
 
 PersistentList.prototype.listIterator = function(start = 0) {
-    return new PersistentListListIterator(this, start);
+    let list = this;
+
+    function headNode() {
+        return list.store;
+    }
+    
+    return new PersistentListListIterator(this, new RemoteControl({headNode: headNode}), start);
 };
 
 PersistentList.prototype.contains = function(obj, test = (item, elt) => item === elt) {
@@ -1512,8 +1578,9 @@ PersistentListIterator.prototype.next = function() {
 //
 //    ListIterator
 //
-function ListIterator(list) {
+function ListIterator(list, remoteControl) {
     this.list = list;
+    this.remoteControl = remoteControl;
 }
 
 // ListIterator.prototype.type = function() {
@@ -1615,9 +1682,9 @@ ListIterator.prototype.addAfter = function() {
 //
 //    MutableListListIterator
 //
-function MutableListListIterator(list) {
-    ListIterator.call(this, list);
-    this.expectedModificationCount = list.modificationCount;
+function MutableListListIterator(list, remoteControl) {
+    ListIterator.call(this, list, remoteControl);
+    this.expectedModificationCount = this.remoteControl.modificationCount();
 }
 
 MutableListListIterator.prototype = Object.create(ListIterator.prototype);
@@ -1629,7 +1696,7 @@ MutableListListIterator.prototype.countModification = function() {
 };
 
 MutableListListIterator.prototype.comodified = function() {
-    return this.expectedModificationCount !== this.list.modificationCount;
+    return this.expectedModificationCount !== this.remoteControl.modificationCount();
 };
 
 MutableListListIterator.prototype.checkComodification = function() {
@@ -1745,12 +1812,12 @@ MutableListListIterator.prototype.doAddAfter = function(obj) {
 //
 //    RandomAccessListListIterator
 //
-function RandomAccessListListIterator(list, start = 0) {
-    MutableListListIterator.call(this, list);
+function RandomAccessListListIterator(list, remoteControl, start = 0) {
+    MutableListListIterator.call(this, list, remoteControl);
 
     if ( start < 0 ) {
         throw new Error(`Invalid cursor index: ${start}`);
-    } else if ( list.isEmpty() ) {
+    } else if ( list.isEmpty() ) { // ???
         this.cursor = 0;
     } else {
         this.cursor = Math.min(start, list.size() - 1);
@@ -1828,8 +1895,8 @@ RandomAccessListListIterator.prototype.doAddAfter = function(obj) {
 //
 //    SinglyLinkedListListIterator
 //
-function SinglyLinkedListListIterator(list, start = 0) {
-    MutableListListIterator.call(this, list);
+function SinglyLinkedListListIterator(list, remoteControl, start = 0) {
+    MutableListListIterator.call(this, list, remoteControl);
     this.index = 0;
     this.initializeCursor();
     this.history = new LinkedStack();
@@ -1848,7 +1915,7 @@ SinglyLinkedListListIterator.prototype.constructor = SinglyLinkedListListIterato
 Object.defineProperty(SinglyLinkedListListIterator.prototype, "constructor", {enumerable: false, configurable: false});
 
 SinglyLinkedListListIterator.prototype.initializeCursor = function() {
-    this.cursor = this.list.front;
+    this.cursor = this.remoteControl.headNode();
 };
 
 SinglyLinkedListListIterator.prototype.doDoCurrent = function() {
@@ -1868,7 +1935,7 @@ SinglyLinkedListListIterator.prototype.doHasNext = function() {
 };
 
 SinglyLinkedListListIterator.prototype.doHasPrevious = function() {
-    return !(this.cursor === null  ||  this.cursor === this.list.front);
+    return !(this.cursor === null  ||  this.cursor === this.remoteControl.headNode());
 };
 
 SinglyLinkedListListIterator.prototype.doDoNext = function() {
@@ -1938,9 +2005,9 @@ SinglyLinkedListListIterator.prototype.doAddAfter = function(obj) {
 //
 //    DoublyLinkedListListIterator
 //
-function DoublyLinkedListListIterator(list, start = 0) {
-    MutableListListIterator.call(this, list);
-    this.cursor = new Dcursor(list)
+function DoublyLinkedListListIterator(list, remoteControl, start = 0) {
+    MutableListListIterator.call(this, list, remoteControl);
+    this.cursor = this.remoteControl.initialize();
     
     if ( start < 0 ) {
         throw new Error(`Invalid cursor index: ${start}`);
@@ -2034,9 +2101,9 @@ DoublyLinkedListListIterator.prototype.doAddAfter = function(obj) {
 //
 //    PersistentListListIterator
 //
-function PersistentListListIterator(list, start = 0) {
-    this.list = list;
-    this.cursor = list.store;
+function PersistentListListIterator(list, remoteControl, start = 0) {
+    ListIterator.call(this, list, remoteControl);
+    this.cursor = this.remoteControl.headNode();
     this.index = 0;
     this.history = new PersistentStack();
 
@@ -2060,8 +2127,8 @@ Object.defineProperty(PersistentListListIterator.prototype, "constructor", {enum
 //       @list.type
 //     end
 
-PersistentListListIterator.initializeIterator = function(list, index, cursor, history) {
-    let iterator = new PersistentListListIterator(list);
+PersistentListListIterator.initializeIterator = function(iterator, index, cursor, history) {
+    let iterator = new PersistentListListIterator(iterator.list, iterator.remoteControl);
     iterator.cursor = cursor;
     iterator.index = index;
     iterator.history = history;
@@ -2091,7 +2158,7 @@ PersistentListListIterator.prototype.hasPrevious = function() {
 
 PersistentListListIterator.prototype.doNext = function() {
     if ( this.hasNext() ) {
-        return PersistentListListIterator.initializeIterator(this.list, this.index+1, this.cursor.rest(), this.history.push(this.cursor));
+        return PersistentListListIterator.initializeIterator(this, this.index+1, this.cursor.rest(), this.history.push(this.cursor));
     } else {
         return null;
     }
@@ -2099,7 +2166,7 @@ PersistentListListIterator.prototype.doNext = function() {
 
 PersistentListListIterator.prototype.doPrevious = function() {
     if ( this.hasNext() ) {
-        return PersistentListListIterator.initializeIterator(this.list, this.index-1, this.history.peek(), this.history.pop());
+        return PersistentListListIterator.initializeIterator(this, this.index-1, this.history.peek(), this.history.pop());
     } else {
         return null;
     }
