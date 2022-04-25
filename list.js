@@ -792,13 +792,21 @@ Dcursor.prototype.rewind = function(step = 1) {
 };
 
 //
-//    This can allow DCURSOR to get out of sync!
+//    These can allow DCURSOR to get out of sync!
 //    
 Dcursor.prototype.bump = function() {
     if ( !this.isInitialized() ) {
         throw new Error("Cursor has not been initialized");
     } else {
         this.node = this.node.getNext();
+    }
+};
+
+Dcursor.prototype.nudge = function() {
+    if ( !this.isInitialized() ) {
+        throw new Error("Cursor has not been initialized");
+    } else {
+        this.index++;
     }
 };
 
@@ -2085,7 +2093,7 @@ DoublyLinkedListListIterator.prototype.doAddBefore = function(obj) {
         this.cursor.reset();
     } else {
         this.list.insertBefore(this.cursor.node, obj);
-        this.cursor.index++;
+        this.cursor.nudge();
     }
 };
 
