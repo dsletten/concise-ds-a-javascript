@@ -266,12 +266,64 @@ Collection.prototype.each = function(op) {
 };
 
 //
+//    RemoteControl
+//    
+function RemoteControl(iface) {
+    for (let p in iface) {
+        this[p] = iface[p];
+    }
+}
+
+//
+//    Cursor
+//
+function Cursor(done, current, advance) {
+    this.done = done;
+    this.current = current;
+    this.advance = advance;
+}
+
+Cursor.makeRandomAccessListCursor = function(list) {
+    let index = 0;
+
+    return new Cursor(() => {
+        if ( index > list.size() ) {
+            throw new Error(`Index is out of bounds: ${index}`);
+        } else {
+            return index === list.size();
+        }
+    },
+                      () => {return list.get(index);},
+                      () => {index++;});
+};
+
+Cursor.makeSinglyLinkedListCursor = function(node) {
+    return new Cursor(() => {return node === null;},
+                      () => {return node.first();},
+                      () => {node = node.rest();});
+};
+
+Cursor.makeDoublyLinkedListCursor = function(dcursor) {
+    let sealedForYourProtection = true;
+
+    return new Cursor(() => {return !dcursor.isInitialized() ||
+                             (!sealedForYourProtection  &&  dcursor.atStart());},
+                      () => {return dcursor.node.getContent();}, // ?????
+                      () => {dcursor.advance();
+                             sealedForYourProtection = false;});
+};
+
+Cursor.makePersistentListCursor = function(list) {
+    return new Cursor(() => {return list.isEmpty();},
+                      () => {return list.get(0);},
+                      () => {return list.delete(0).iterator();});
+};
+
+//
 //    Iterator
 //
-function Iterator(done, curr, advance) {
-    this.done = done;
-    this.curr = curr;
-    this.advance = advance;
+function Iterator(cursor) {
+    this.cursor = cursor;
 }
 
 Iterator.prototype.isDone = function() {
@@ -279,7 +331,7 @@ Iterator.prototype.isDone = function() {
 };
 
 Iterator.prototype.checkDone = function() {
-    return this.done();
+    return this.cursor.done();
 };
 
 Iterator.prototype.current = function() {
@@ -291,7 +343,7 @@ Iterator.prototype.current = function() {
 };
 
 Iterator.prototype.currentElement = function() {
-    return this.curr();
+    return this.cursor.current();
 };
     
 Iterator.prototype.next = function() {
@@ -309,14 +361,14 @@ Iterator.prototype.next = function() {
 };
 
 Iterator.prototype.nextElement = function() {
-    this.advance();
+    this.cursor.advance();
 };
 
 //
 //    MutableCollectionIterator
 // 
-function MutableCollectionIterator(done, curr, advance, modificationCount) {
-    Iterator.call(this, done, curr, advance);
+function MutableCollectionIterator(cursor, modificationCount) {
+    Iterator.call(this, cursor);
     this.modificationCount = modificationCount;
     this.expectedModificationCount = this.modificationCount();
 }
@@ -356,8 +408,8 @@ MutableCollectionIterator.prototype.nextElement = function() {
 //
 //    PersistentCollectionIterator
 // 
-function PersistentCollectionIterator(done, curr, advance) {
-    Iterator.call(this, done, curr, advance);
+function PersistentCollectionIterator(cursor) {
+    Iterator.call(this, cursor);
 }
 
 PersistentCollectionIterator.prototype = Object.create(Iterator.prototype);
@@ -368,7 +420,7 @@ PersistentCollectionIterator.prototype.next = function() {
     if ( this.isDone() ) {
         return this;
     } else {
-        return this.advance(); // ??????????
+        return this.cursor.advance();
     }
 };
 

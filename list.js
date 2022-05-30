@@ -39,12 +39,6 @@ function mod(number, divisor) {
     }
 }
 
-function RemoteControl(iface) {
-    for (let p in iface) {
-        this[p] = iface[p];
-    }
-}
-
 //
 //     List
 //     
@@ -63,6 +57,7 @@ List.prototype.toString = function() {
     while ( !i.isDone() ) {
         result += i.current();
         i.next();
+
         if ( !i.isDone() ) {
             result += " ";
         }
@@ -366,29 +361,9 @@ ArrayList.prototype.isEmpty = function() {
 };
 
 ArrayList.prototype.iterator = function() {
-    let cursor = 0;
-    let list = this;
-
-    function done() {
-        if ( cursor > list.size() ) {
-            throw new Error(`Index is out of bounds: ${cursor}`);
-        }
-        return cursor === list.size();
-    }
-
-    function curr() {
-        return list.get(cursor);
-    }
-
-    function advance () {
-        cursor++;
-    }
-
-    function  modificationCount() {
-        return list.modificationCount;
-    }
-
-    return new MutableCollectionIterator(done, curr, advance, modificationCount);
+    let list = this;  // Still necessary???
+    return new MutableCollectionIterator(Cursor.makeRandomAccessListCursor(list),
+                                         () => {return list.modificationCount;});
 };
     
 ArrayList.prototype.listIterator = function(start = 0) {
@@ -471,26 +446,9 @@ SinglyLinkedList.prototype.doClear = function() {
 };    
 
 SinglyLinkedList.prototype.iterator = function() {
-    let cursor = this.front;
     let list = this;
-
-    function done() {
-        return cursor === null;
-    }
-
-    function curr() {
-        return cursor.first();
-    }
-
-    function advance () {
-        cursor = cursor.rest();
-    }
-
-    function  modificationCount() {
-        return list.modificationCount;
-    }
-
-    return new MutableCollectionIterator(done, curr, advance, modificationCount);
+    return new MutableCollectionIterator(Cursor.makeSinglyLinkedListCursor(list.front),
+                                         () => {return list.modificationCount;});
 };
 
 SinglyLinkedList.prototype.listIterator = function(start = 0) {
@@ -866,28 +824,10 @@ DoublyLinkedList.prototype.doClear = function() {
 
 DoublyLinkedList.prototype.iterator = function() {
     let list = this;
-    let cursor = this.setupCursor();
-    let sealedForYourProtection = true;
+    let dcursor = list.setupCursor();
 
-    function done() {
-        return !cursor.isInitialized() ||
-            (!sealedForYourProtection  &&  cursor.atStart());
-    }
-
-    function curr() {
-        return cursor.node.getContent(); // ?????
-    }
-
-    function advance () {
-        cursor.advance();
-        sealedForYourProtection = false;
-    }
-
-    function  modificationCount() {
-        return list.modificationCount;
-    }
-
-    return new MutableCollectionIterator(done, curr, advance, modificationCount);
+    return new MutableCollectionIterator(Cursor.makeDoublyLinkedListCursor(dcursor),
+                                         () => {return list.modificationCount;});
 };
 
 DoublyLinkedList.prototype.listIterator = function(start = 0) {
@@ -1171,29 +1111,9 @@ HashTableList.prototype.isEmpty = function() {
 };
 
 HashTableList.prototype.iterator = function() {
-    let cursor = 0;
-    let list = this;
-
-    function done() {
-        if ( cursor > list.size() ) {
-            throw new Error(`Index is out of bounds: ${cursor}`);
-        }
-        return cursor === list.size();
-    }
-
-    function curr() {
-        return list.get(cursor);
-    }
-
-    function advance () {
-        cursor++;
-    }
-
-    function  modificationCount() {
-        return list.modificationCount;
-    }
-
-    return new MutableCollectionIterator(done, curr, advance, modificationCount);
+    let list = this;  // Still necessary???
+    return new MutableCollectionIterator(Cursor.makeRandomAccessListCursor(list),
+                                         () => {return list.modificationCount;})
 };
 
 HashTableList.prototype.listIterator = function(start = 0) {
@@ -1369,19 +1289,7 @@ PersistentList.prototype.clear = function() {
 PersistentList.prototype.iterator = function() {
     let list = this;
 
-    function done() {
-        return list.isEmpty();
-    }
-
-    function curr() {
-        return list.get(0);
-    }
-
-    function advance () {
-        return list.delete(0).iterator();
-    }
-
-    return new PersistentCollectionIterator(done, curr, advance);
+    return new PersistentCollectionIterator(Cursor.makePersistentListCursor(list));
 };
 
 PersistentList.prototype.listIterator = function(start = 0) {
@@ -2136,12 +2044,12 @@ Object.defineProperty(PersistentListListIterator.prototype, "constructor", {enum
 //     end
 
 PersistentListListIterator.initializeIterator = function(iterator, index, cursor, history) {
-    let iterator = new PersistentListListIterator(iterator.list, iterator.remoteControl);
-    iterator.cursor = cursor;
-    iterator.index = index;
-    iterator.history = history;
+    let newIterator = new PersistentListListIterator(iterator.list, iterator.remoteControl);
+    newIterator.cursor = cursor;
+    newIterator.index = index;
+    newIterator.history = history;
 
-    return iterator;
+    return newIterator;
 }
 
 PersistentListListIterator.prototype.doCurrent = function() {
