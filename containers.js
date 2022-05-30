@@ -253,8 +253,20 @@ Collection.prototype.iterator = function() {
 //     - Check type?
 //     - Equality test?
 //     
-Collection.prototype.contains = function(obj, test) {
-    throw new Error("Collection does not implement contains().");
+Collection.prototype.contains = function(obj, test = (item, elt) => item === elt) {
+    let iterator = this.iterator();
+
+    while ( !iterator.isDone() ) {
+        let elt = iterator.current();
+
+        if ( test(obj, elt) ) {
+            return elt;
+        }
+
+        iterator.next();
+    }
+
+    return null;
 };
 
 Collection.prototype.equals = function(collection) {
@@ -268,11 +280,11 @@ Collection.prototype.each = function(op) {
 //
 //    RemoteControl
 //    
-function RemoteControl(iface) {
-    for (let p in iface) {
-        this[p] = iface[p];
-    }
-}
+// function RemoteControl(iface) {
+//     for (let p in iface) {
+//         this[p] = iface[p];
+//     }
+// }
 
 //
 //    Cursor
@@ -424,3 +436,30 @@ PersistentCollectionIterator.prototype.next = function() {
     }
 };
 
+//
+//     Rhino 6e
+//     
+function enumeration(enumMap) {
+    var enumeration = function() { throw "Can't instantiate enumerations"; };
+    enumeration.values = [];
+    enumeration.forEach = function(f, c) {
+        for (var i = 0; i < this.values.length; i++) {
+            f.call(c, this.values[i]);
+        }
+    };
+
+    enumeration.prototype.toString = function() { return this.name; };
+    enumeration.prototype.valueOf = function() { return this.value; };
+    enumeration.prototype.toJSON = function() { return this.name; };
+
+    for (var name in enumMap) {
+        var e = Object.create(enumeration.prototype);
+        Object.defineProperty(e, "name", {value: name, enumerable: true});
+        Object.defineProperty(e, "value", {value: enumMap[name], enumerable: true});
+
+        enumeration[name] = e;
+        enumeration.values.push(e);
+    }
+
+    return enumeration;
+}
