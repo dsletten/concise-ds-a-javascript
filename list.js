@@ -456,24 +456,13 @@ SinglyLinkedList.prototype.doClear = function() {
 SinglyLinkedList.prototype.iterator = function() {
     let list = this;
     return new MutableCollectionIterator(Cursor.makeSinglyLinkedListCursor(list.front),
-                                         () => {return list.modificationCount;});
+                                         () => list.modificationCount);
 };
 
 SinglyLinkedList.prototype.listIterator = function(start = 0) {
     let list = this;
 
-    function modificationCount() {
-        return list.modificationCount;
-    }
-    
-    function headNode() {
-        return list.front;
-    }
-    
-    return new SinglyLinkedListListIterator(this, 
-                                            new RemoteControl({modificationCount: modificationCount,
-                                                               headNode: headNode}),
-                                            start);
+    return new SinglyLinkedListListIterator(this, () => list.modificationCount, () => list.front, start);
 };
 
 SinglyLinkedList.prototype.contains = function(obj, test = (item, elt) => item === elt) {
@@ -872,40 +861,29 @@ DoublyLinkedList.prototype.iterator = function() {
     let dcursor = list.setupCursor();
 
     return new MutableCollectionIterator(Cursor.makeDoublyLinkedListCursor(dcursor),
-                                         () => {return list.modificationCount;});
+                                         () => list.modificationCount);
 };
 
 DoublyLinkedList.prototype.listIterator = function(start = 0) {
     let list = this;
 
-    function modificationCount() {
-        return list.modificationCount;
-    }
-    
-    function initialize() {
-        return list.setupCursor();
-    }
-    
-    return new DoublyLinkedListListIterator(this,
-                                            new RemoteControl({modificationCount: modificationCount,
-                                                               initialize: initialize}),
-                                            start);
+    return new DoublyLinkedListListIterator(this, () => list.modificationCount, () => list.setupCursor(), start);
 };
 
-DoublyLinkedList.prototype.contains = function(obj, test = (item, elt) => item === elt) {
-    let count = this.count;
-    function findObject(dcons, i) {
-        if ( i === count ) {
-            return null;
-        } else if ( test(obj, dcons.getContent()) ) {
-            return dcons.getContent();
-        } else {
-            return findObject(dcons.getNext(), i + 1);
-        }
-    }
+// DoublyLinkedList.prototype.contains = function(obj, test = (item, elt) => item === elt) {
+//     let count = this.count;
+//     function findObject(dcons, i) {
+//         if ( i === count ) {
+//             return null;
+//         } else if ( test(obj, dcons.getContent()) ) {
+//             return dcons.getContent();
+//         } else {
+//             return findObject(dcons.getNext(), i + 1);
+//         }
+//     }
 
-    return findObject(this.store, 0);
-};
+//     return findObject(this.store, 0);
+// };
 
 DoublyLinkedList.prototype.doAdd = function(objs) {
     function addNodes(head, start, objs) {
@@ -1400,7 +1378,7 @@ HashTableList.prototype.isEmpty = function() {
 HashTableList.prototype.iterator = function() {
     let list = this;  // Still necessary???
     return new MutableCollectionIterator(Cursor.makeRandomAccessListCursor(list),
-                                         () => {return list.modificationCount;})
+                                         () => list.modificationCount)
 };
 
 HashTableList.prototype.listIterator = function(start = 0) {
@@ -2092,8 +2070,9 @@ RandomAccessListListIterator.prototype.doAddAfter = function(obj) {
 //
 //    SinglyLinkedListListIterator
 //
-function SinglyLinkedListListIterator(list, remoteControl, start = 0) {
-    MutableListListIterator.call(this, list, remoteControl);
+function SinglyLinkedListListIterator(list, modificationCount, head, start = 0) {
+    MutableListListIterator.call(this, list, modificationCount);
+    this.head = head;
     this.index = 0;
     this.initializeCursor();
     this.history = new LinkedStack();
@@ -2112,7 +2091,7 @@ SinglyLinkedListListIterator.prototype.constructor = SinglyLinkedListListIterato
 Object.defineProperty(SinglyLinkedListListIterator.prototype, "constructor", {enumerable: false, configurable: false});
 
 SinglyLinkedListListIterator.prototype.initializeCursor = function() {
-    this.cursor = this.remoteControl.headNode();
+    this.cursor = this.head();
 };
 
 SinglyLinkedListListIterator.prototype.doDoCurrent = function() {
@@ -2132,7 +2111,7 @@ SinglyLinkedListListIterator.prototype.doHasNext = function() {
 };
 
 SinglyLinkedListListIterator.prototype.doHasPrevious = function() {
-    return !(this.cursor === null  ||  this.cursor === this.remoteControl.headNode());
+    return !(this.cursor === null  ||  this.cursor === this.head());
 };
 
 SinglyLinkedListListIterator.prototype.doDoNext = function() {
@@ -2202,9 +2181,10 @@ SinglyLinkedListListIterator.prototype.doAddAfter = function(obj) {
 //
 //    DoublyLinkedListListIterator
 //
-function DoublyLinkedListListIterator(list, remoteControl, start = 0) {
-    MutableListListIterator.call(this, list, remoteControl);
-    this.cursor = this.remoteControl.initialize();
+function DoublyLinkedListListIterator(list, modificationCount, initialize, start = 0) {
+    MutableListListIterator.call(this, list, modificationCount);
+    this.initialize = this.initialize();
+    this.cursor = this.initialize();
     
     if ( start < 0 ) {
         throw new Error(`Invalid cursor index: ${start}`);
