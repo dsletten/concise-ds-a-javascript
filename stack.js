@@ -37,6 +37,14 @@ Object.defineProperty(Stack.prototype, "constructor", {enumerable: false, config
 //    Check type???
 //Stack.prototype.push = function() {
 
+Stack.prototype.fill = function(count = 1000) {
+    for (var i = 1; i <= count; i++) {
+        this.push(i);
+    }
+
+    return this;
+};
+
 Stack.prototype.pop = function() {
     if ( this.isEmpty() ) {
         throw new Error("Stack is empty.");
@@ -215,6 +223,45 @@ HashStack.prototype.doPeek = function() {
 };
 
 //
+//    MapStack
+//    - A Map keeps its own count
+//
+function MapStack() {
+    this.store = new Map();
+}
+
+MapStack.prototype = Object.create(Stack.prototype);
+MapStack.prototype.constructor = MapStack;
+Object.defineProperty(MapStack.prototype, "constructor", {enumerable: false, configurable: false});
+
+MapStack.prototype.size = function() {
+    return this.store.size;
+};
+
+MapStack.prototype.isEmpty = function() {
+    return this.size() === 0;
+};
+
+MapStack.prototype.clear = function() {
+    this.store.clear();
+};
+
+MapStack.prototype.push = function(obj) {
+    this.store.set(this.size()+1, obj);
+};
+
+MapStack.prototype.doPop = function() {
+    let discard = this.peek();
+    this.store.delete(this.size());
+
+    return discard;
+};
+
+MapStack.prototype.doPeek = function() {
+    return this.store.get(this.size());
+};
+
+//
 //     PersistentStack
 //     
 function PersistentStack() {
@@ -230,6 +277,15 @@ PersistentStack.initializeStack = function(top, count) {
     let newStack = new PersistentStack();
     newStack.top = top;
     newStack.count = count;
+
+    return newStack;
+};
+
+PersistentStack.prototype.fill = function(count = 1000) {
+    let newStack = this;
+    for (var i = 1; i <= count; i++) {
+        newStack = newStack.push(i);
+    }
 
     return newStack;
 };
@@ -275,6 +331,18 @@ Object.defineProperty(PersistentListStack, "empty", {enumerable: false, configur
 PersistentListStack.initializeStack = function(list) {
     let newStack = new PersistentListStack();
     newStack.list = list;
+
+    return newStack;
+};
+
+//
+//     Same as PersistentStack?!
+//     
+PersistentListStack.prototype.fill = function(count = 1000) {
+    let newStack = this;
+    for (var i = 1; i <= count; i++) {
+        newStack = newStack.push(i);
+    }
 
     return newStack;
 };

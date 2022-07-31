@@ -34,6 +34,17 @@ Queue.prototype = Object.create(Dispenser.prototype);
 Queue.prototype.constructor = Queue;
 Object.defineProperty(Queue.prototype, "constructor", {enumerable: false, configurable: false});
 
+//
+//    Not appropriate for PersistentQueue!
+//    
+Queue.prototype.fill = function(count = 1000) {
+    for (var i = 1; i <= count; i++) {
+        this.enqueue(i);
+    }
+
+    return this;
+};
+
 Queue.prototype.isEmpty = function() {
     return this.size() === 0;
 };
@@ -168,33 +179,33 @@ LinkedQueue.prototype.doFront = function() {
 };
 
 //
-//     SinglyLinkedListQueue
+//     LinkedListQueue
 //     
-function SinglyLinkedListQueue() {
+function LinkedListQueue() {
     this.list = new SinglyLinkedList();
 }
 
-SinglyLinkedListQueue.prototype = Object.create(Queue.prototype);
-SinglyLinkedListQueue.prototype.constructor = SinglyLinkedListQueue;
-Object.defineProperty(SinglyLinkedListQueue.prototype, "constructor", {enumerable: false, configurable: false});
+LinkedListQueue.prototype = Object.create(Queue.prototype);
+LinkedListQueue.prototype.constructor = LinkedListQueue;
+Object.defineProperty(LinkedListQueue.prototype, "constructor", {enumerable: false, configurable: false});
 
-SinglyLinkedListQueue.prototype.size = function() {
+LinkedListQueue.prototype.size = function() {
     return this.list.size();
 };
 
-SinglyLinkedListQueue.prototype.clear = function() {
+LinkedListQueue.prototype.clear = function() {
     this.list.clear();
 };
 
-SinglyLinkedListQueue.prototype.enqueue = function(obj) {
+LinkedListQueue.prototype.enqueue = function(obj) {
     this.list.add(obj);
 };
 
-SinglyLinkedListQueue.prototype.doDequeue = function() {
+LinkedListQueue.prototype.doDequeue = function() {
     return this.list.delete(0);
 };
 
-SinglyLinkedListQueue.prototype.doFront = function() {
+LinkedListQueue.prototype.doFront = function() {
     return this.list.get(0);
 };
 
@@ -306,6 +317,47 @@ HashQueue.prototype.doFront = function() {
 };
 
 //
+//    MapQueue
+//    - A Map keeps its own count
+//
+function MapQueue() {
+    this.store = new Map();
+    this.head = 0;
+    this.tail = 0;
+}
+
+MapQueue.prototype = Object.create(Queue.prototype);
+MapQueue.prototype.constructor = MapQueue;
+Object.defineProperty(MapQueue.prototype, "constructor", {enumerable: false, configurable: false});
+
+MapQueue.prototype.size = function() {
+    return this.store.size;
+};
+
+MapQueue.prototype.clear = function() {
+    this.store.clear();
+    this.head = 0;
+    this.tail = 0;
+};
+
+MapQueue.prototype.enqueue = function(obj) {
+    this.store.set(this.tail, obj);
+    this.tail++;
+};
+
+MapQueue.prototype.doDequeue = function() {
+    let discard = this.front();
+    this.store.delete(this.head);
+    this.head++;
+
+    return discard;
+};
+
+MapQueue.prototype.doFront = function() {
+    return this.store.get(this.head);
+};
+
+//
 //    PersistentQueue
 // 
 function PersistentQueue() {
@@ -323,6 +375,15 @@ PersistentQueue.initializeQueue = function(head, tail, count) {
     newQueue.head = head;
     newQueue.tail = tail;
     newQueue.count = count;
+
+    return newQueue;
+};
+
+PersistentQueue.prototype.fill = function(count = 1000) {
+    let newQueue = this;
+    for (var i = 1; i <= count; i++) {
+        newQueue = newQueue.enqueue(i);
+    }
 
     return newQueue;
 };
@@ -376,6 +437,15 @@ Object.defineProperty(PersistentListQueue, "empty", {enumerable: false, configur
 PersistentListQueue.initializeQueue = function(list) {
     let newQueue = new PersistentListQueue();
     newQueue.list = list;
+
+    return newQueue;
+};
+
+PersistentListQueue.prototype.fill = function(count = 1000) {
+    let newQueue = this;
+    for (var i = 1; i <= count; i++) {
+        newQueue = newQueue.enqueue(i);
+    }
 
     return newQueue;
 };
@@ -488,11 +558,11 @@ DllDeque.prototype.doDequeueRear = function() {
     return discard;
 };
 
-DllDeque.prototype.doFront = function(obj) {
+DllDeque.prototype.doFront = function() {
     return this.list.get(0);
 };
 
-DllDeque.prototype.doRear = function(obj) {
+DllDeque.prototype.doRear = function() {
     return this.list.get(-1);
 };
 
@@ -565,12 +635,81 @@ HashDeque.prototype.doDequeueRear = function() {
     return discard;
 };
 
-HashDeque.prototype.doFront = function(obj) {
+HashDeque.prototype.doFront = function() {
     return this.store[this.head];
 };
 
-HashDeque.prototype.doRear = function(obj) {
+HashDeque.prototype.doRear = function() {
     return this.store[this.tail];
+};
+
+//
+//    MapDeque
+//
+function MapDeque() {
+    this.store = new Map();
+    this.head = 0;
+    this.tail = 0;
+}
+
+MapDeque.prototype = Object.create(Deque.prototype);
+MapDeque.prototype.constructor = MapDeque;
+Object.defineProperty(MapDeque.prototype, "constructor", {enumerable: false, configurable: false});
+
+MapDeque.prototype.size = function() {
+    return this.store.size;
+};
+
+MapDeque.prototype.clear = function() {
+    this.store.clear();
+    this.head = 0;
+    this.tail = 0;
+};
+
+MapDeque.prototype.enqueue = function(obj) {
+    if ( !this.isEmpty() ) {
+        this.tail++;
+    }
+
+    this.store.set(this.tail, obj);
+};
+
+MapDeque.prototype.enqueueFront = function(obj) {
+    if ( !this.isEmpty() ) {
+        this.head--;
+    }
+
+    this.store.set(this.head, obj);
+};
+
+MapDeque.prototype.doDequeue = function() {
+    let discard = this.front();
+    this.store.delete(this.head);
+
+    if ( !this.isEmpty() ) {
+        this.head++;
+    }
+
+    return discard;
+};
+
+MapDeque.prototype.doDequeueRear = function() {
+    let discard = this.rear();
+    this.store.delete(this.tail);
+
+    if ( !this.isEmpty() ) {
+        this.tail--;
+    }
+
+    return discard;
+};
+
+MapDeque.prototype.doFront = function() {
+    return this.store.get(this.head);
+};
+
+MapDeque.prototype.doRear = function() {
+    return this.store.get(this.tail);
 };
 
 //
@@ -586,14 +725,6 @@ PersistentDeque.prototype = Object.create(Deque.prototype);
 PersistentDeque.prototype.constructor = PersistentDeque;
 Object.defineProperty(PersistentDeque.prototype, "constructor", {enumerable: false, configurable: false});
 
-PersistentDeque.prototype.size = function() {
-    return this.count;
-};
-
-PersistentDeque.prototype.clear = function() {
-    return new PersistentDeque();
-};
-
 PersistentDeque.initializeDeque = function(head, tail, count) {
     let newDeque = new PersistentDeque();
     newDeque.head = head;
@@ -601,6 +732,23 @@ PersistentDeque.initializeDeque = function(head, tail, count) {
     newDeque.count = count;
 
     return newDeque;
+};
+
+PersistentDeque.prototype.fill = function(count = 1000) {
+    let newDeque = this;
+    for (var i = 1; i <= count; i++) {
+        newDeque = newDeque.enqueue(i);
+    }
+
+    return newDeque;
+};
+
+PersistentDeque.prototype.size = function() {
+    return this.count;
+};
+
+PersistentDeque.prototype.clear = function() {
+    return new PersistentDeque();
 };
 
 PersistentDeque.prototype.enqueue = function(obj) {
@@ -649,4 +797,69 @@ PersistentDeque.prototype.doFront = function() {
 
 PersistentDeque.prototype.doRear = function() {
     return this.tail.first();
+};
+
+//
+//    PersistentListDeque
+//
+function PersistentListDeque() {
+    this.list = PersistentListDeque.empty;
+}
+
+PersistentListDeque.prototype = Object.create(Deque.prototype);
+PersistentListDeque.prototype.constructor = PersistentListDeque;
+Object.defineProperty(PersistentListDeque.prototype, "constructor", {enumerable: false, configurable: false});
+
+PersistentListDeque.empty = new PersistentList();
+Object.defineProperty(PersistentListDeque, "empty", {enumerable: false, configurable: false});
+
+PersistentListDeque.initializeDeque = function(list) {
+    let newDeque = new PersistentListDeque();
+    newDeque.list = list;
+
+    return newDeque;
+};
+
+//
+//     Same as PersistentDeque?!
+//     
+PersistentListDeque.prototype.fill = function(count = 1000) {
+    let newDeque = this;
+    for (var i = 1; i <= count; i++) {
+        newDeque = newDeque.enqueue(i);
+    }
+
+    return newDeque;
+};
+
+PersistentListDeque.prototype.size = function() {
+    return this.list.size();
+};
+
+PersistentListDeque.prototype.clear = function() {
+    return new PersistentListDeque();
+};
+
+PersistentListDeque.prototype.enqueue = function(obj) {
+    return PersistentListDeque.initializeDeque(this.list.add(obj));
+};
+
+PersistentListDeque.prototype.enqueueFront = function(obj) {
+    return PersistentListDeque.initializeDeque(this.list.insert(0, obj));
+};
+
+PersistentListDeque.prototype.doDequeue = function() {
+    return PersistentListDeque.initializeDeque(this.list.delete(0));
+};
+
+PersistentListDeque.prototype.doDequeueRear = function() {
+    return PersistentListDeque.initializeDeque(this.list.delete(-1));
+};
+
+PersistentListDeque.prototype.doFront = function() {
+    return this.list.get(0);
+};
+
+PersistentListDeque.prototype.doRear = function() {
+    return this.list.get(-1);
 };

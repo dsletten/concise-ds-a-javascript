@@ -27,93 +27,107 @@
 "use strict";
 
 function testStackConstructor(stackConstructor) {
-    var s = new stackConstructor();
+    let s = stackConstructor();
 
-    if ( !s.isEmpty() ) {
-        throw new Error("New Stack should be empty.");
-    }
-
-    if ( s.size() !== 0 ) {
-        throw new Error("New Stack size should be 0.");
-    }
+    assert(s.isEmpty(), "New Stack should be empty.");
+    assert(s.size() === 0, "New Stack size should be 0.");
 
     try {
         s.peek();
         throw new Error("Can't call peek() on empty stack.");
     } catch (e) {
-        console.log("New Stack should be empty: " + e.toString());
+        switch (e.message) {
+            case "Stack is empty.":
+                console.log("Got expected error: " + e);
+                break;
+            default: throw e;
+        }
     }
 
     try {
         s.pop();
         throw new Error("Can't call pop() on empty stack.");
     } catch (e) {
-        console.log("New Stack should be empty: " + e.toString());
+        switch (e.message) {
+            case "Stack is empty.":
+                console.log("Got expected error: " + e);
+                break;
+            default: throw e;
+        }
     }
+
+    return true;
 }
 
 function testStackIsEmpty(stackConstructor) {
-    var s = new stackConstructor();
+    let s = stackConstructor();
 
-    if ( !s.isEmpty() ) {
-        throw new Error("New stack should be empty.");
-    }
+    assert(s.isEmpty(), "New stack should be empty.");
 
     s.push(-1);
     
-    if ( s.isEmpty() ) {
-        throw new Error("Stack with elt should not be empty.");
-    }
+    assert(!s.isEmpty(), "Stack with elt should not be empty.");
 
     s.pop();
     
-    if ( !s.isEmpty() ) {
-        throw new Error("Empty stack should be empty.");
-    }
+    assert(s.isEmpty(), "Empty stack should be empty.");
+
+    return true;
 }
     
-function testStackSize(stackConstructor) {
-    var s = new stackConstructor();
+function testStackSize(stackConstructor, count = 1000) {
+    let s = stackConstructor();
 
-    if ( s.size() !== 0 ) {
-        throw new Error("Size of new stack should be 0.");
-    }
+    assert(s.size() === 0, "Size of new stack should be 0.");
 
-    for (var i = 1; i <= 10000; i++) {
+//    for (let i = 1; i <= 10000; i++) {
+    for (let i = 1; i <= count; i++) {
         s.push(i);
         assertStackSize(s, i);
     }
+
+    return true;
 }
 
 function assertStackSize(s, n) {
-    if ( s.size() !== n ) {
-        throw new Error("Size of stack should be " + n);
-    }
+    assert(s.size() === n, `Size of stack should be ${n}`);
 }
 
-function testStackMakeEmpty(stackConstructor) {
-    var s = new stackConstructor();
-    fillStack(s);
+function testStackClear(stackConstructor, count = 1000) {
+    let s = stackConstructor().fill(count);
 
-    if ( s.isEmpty() ) {
-        throw new Error("Stack should be not be empty.");
-    }
+    assert(!s.isEmpty(), `Stack should have ${count} elements.`);
 
     s.clear();
 
-    if ( !s.isEmpty() ) {
-        throw new Error("Stack should be empty.");
-    }
+    assert(s.isEmpty(), "Stack should be empty.");
+    assertStackSize(s, 0);
 
-    if ( s.size() !== 0 ) {
-        throw new Error("Size of stack should be 0.");
-    }
+    return true;
 }
 
-function testStackPeek(stackConstructor) {
+//
+//     These pop() and peek() tests are largely redundant!
+//     
+function testStackPop(stackConstructor, count = 1000) {
     function testRecursive(s, n) {
         if ( s.isEmpty() ) {
-            return true;
+            return n === 0;
+        } else if ( s.pop() === n ) {
+            return testRecursive(s, n-1);
+        } else {
+            throw new Error("Wrong value on stack: " + s.peek() + " should be: " + n);
+        }
+    }
+
+    let s = stackConstructor().fill(count);
+    return testRecursive(s, s.size());
+}
+
+function testStackPeek(stackConstructor, count = 1000) {
+    function testRecursive(s, n) {
+        if ( s.isEmpty() ) {
+            return n === 0;
         } else if ( s.peek() === n ) {
             s.pop();
             return testRecursive(s, n-1);
@@ -122,117 +136,85 @@ function testStackPeek(stackConstructor) {
         }
     }
 
-    var s = new stackConstructor();
-    fillStack(s);
-    testRecursive(s, s.size());
+    let s = stackConstructor().fill(count);
+    return testRecursive(s, s.size());
 }
 
-function testStackTime(stackConstructor) {
-    var s = new stackConstructor();
-    var start = Date.now();
+function testStackTime(stackConstructor, count = 100000) {
+    let s = stackConstructor();
+//    let start = Date.now();
+    let start = performance.now();
 
-    for (var i = 0; i < 10; i++) {
-//         for (var j = 0; j < 100000; j++) {
+    for (let i = 0; i < 10; i++) {
+//         for (let j = 0; j < 100000; j++) {
 //             s.push(j);
 //         }
-        fillStack(s, 1, 100000);
-        s.clear();
+        s.fill(count);
+        //        s.clear();
+        emptyStack(s);
     }
 
-    var end = Date.now();
+//    let end = Date.now();
 
-    console.log("Elapsed time: " + (end - start));
+    console.log(`Elapsed time: ${performance.now() - start}`);
+//    console.log("Elapsed time: " + (end - start));
+
+    return true;
 }
 
-function fillStack(s, start, end) {
-    start = start || 1;
-    end = end || 10000;
-
-    for (var i = start; i <= end; i++) {
-        s.push(i);
-    }
-}
-
-function emptyStack(s, count) {
-    count = count || s.size();
-
-    for (var i = 0; i < count; i++) {
+function emptyStack(s, count = s.size()) {
+    for (let i = 0; i < count; i++) {
         s.pop();
     }
 }
 
 function testStackWave(stackConstructor) {
-    var s = new stackConstructor();
+    let s = stackConstructor();
 
-//     for (var i = 0; i < 5000; i++) {
-//         s.push(i);
-//     }
-
-    fillStack(s, 1, 5000);
-    console.log(s.size());
-
-//     for (var i = 0; i < 3000; i++) {
-//         s.pop(i);
-//     }
+    s.fill(5000);
+    assertStackSize(s, 5000);
 
     emptyStack(s, 3000);
-    console.log(s.size());
+    assertStackSize(s, 2000);
 
-//     for (var i = 0; i < 5000; i++) {
-//         s.push(i);
-//     }
-
-    fillStack(s, 1, 5000);
-    console.log(s.size());
-
-//     for (var i = 0; i < 3000; i++) {
-//         s.pop(i);
-//     }
+    s.fill(5000);
+    assertStackSize(s, 7000);
 
     emptyStack(s, 3000);
-    console.log(s.size());
+    assertStackSize(s, 4000);
 
-//     for (var i = 0; i < 5000; i++) {
-//         s.push(i);
-//     }
-
-    fillStack(s, 1, 5000);
-    console.log(s.size());
-
-//     for (var i = 0; i < 3000; i++) {
-//         s.pop(i);
-//     }
+    s.fill(5000);
+    assertStackSize(s, 9000);
 
     emptyStack(s, 3000);
-    console.log(s.size());
+    assertStackSize(s, 6000);
 
-//     for (var i = 0; i < 4000; i++) {
-//         s.push(i);
-//     }
-
-    fillStack(s, 1, 4000);
-    console.log(s.size());
-
-//     for (var i = 0; i < 10000; i++) {
-//         s.pop(i);
-//     }
+    s.fill(4000);
+    assertStackSize(s, 10000);
 
     emptyStack(s, 10000);
-    console.log(s.size());
+    assert(s.isEmpty(), "Stack should be empty.");
+
+    return true;
 }
 
 function runAllStackTests(stackConstructor) {
-    console.log("Testing: " + stackConstructor);
-    testStackConstructor(stackConstructor);
-    testStackIsEmpty(stackConstructor);
-    testStackSize(stackConstructor);
-    testStackMakeEmpty(stackConstructor);
-    testStackPeek(stackConstructor);
-    testStackTime(stackConstructor);
-    testStackWave(stackConstructor);
+    console.log("Testing: " + stackConstructor().constructor.name); // ??????
+    return testStackConstructor(stackConstructor) &&
+        testStackIsEmpty(stackConstructor) &&
+        testStackSize(stackConstructor) &&
+        testStackClear(stackConstructor) &&
+        testStackPop(stackConstructor) &&
+        testStackPeek(stackConstructor) &&
+        testStackTime(stackConstructor) &&
+        testStackWave(stackConstructor);
 }
 
 function testStackAll() {
-    var constructors = [LinkedStack, ArrayStack, HashStack];
-    constructors.forEach(function(constructor) { runAllStackTests(constructor); });
+    let constructors = [() => new LinkedStack(),
+                        () => new LinkedListStack(),
+                        () => new ArrayStack(),
+                        () => new HashStack(),
+                        () => new MapStack()];
+    return constructors.every(constructor => runAllStackTests(constructor));
 }

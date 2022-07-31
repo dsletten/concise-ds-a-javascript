@@ -173,12 +173,12 @@ List.prototype.set = function(i, obj) {
     if ( i < 0 ) {
         let j = i + this.size();
         if ( j >= 0 ) {
-            return this.set(j, obj);
+            this.set(j, obj);
         }
     } else if ( i >= this.size() ) {
-        return this.extendList(i, obj);
+        this.extendList(i, obj);
     } else {
-        return this.doSet(i, obj);
+        this.doSet(i, obj);
     }
 };
 
@@ -222,7 +222,22 @@ List.prototype.slice = function(i, n) {
 };
 
 List.prototype.doSlice = function(i, n) {
-    throw new Error("List does not implement doSlice().");
+    let slice = this.makeEmptyList();
+    let count = this.size();
+
+    return slice.add(...this.subseq(Math.min(i, count), Math.min(i+n, count)));
+};
+
+List.prototype.makeEmptyList = function() {
+    throw new Error("List does not implement makeEmptyList().");
+};
+
+List.prototype.subseq = function(start, end) {
+    throw new Error("List does not implement subseq().");
+};
+
+List.prototype.reverse = function() {
+    throw new Error("List does not implement reverse().");
 };
 
 //
@@ -237,6 +252,17 @@ MutableList.prototype = Object.create(List.prototype);
 MutableList.prototype.constructor = MutableList;
 Object.defineProperty(MutableList.prototype, "constructor", {enumerable: false, configurable: false});
 
+MutableList.prototype.countModification = function() {
+    this.modificationCount++;
+};
+
+//
+//    For testing...
+//    
+MutableList.prototype.fill = function(count = 1000) {
+    return this.add(...[...Array(count)].map((_,i) => i+1));
+};
+
 MutableList.prototype.clear = function() {
     this.countModification();
     this.doClear();
@@ -246,15 +272,21 @@ MutableList.prototype.doClear = function() {
     throw new Error("MutableList does not implement doClear().");
 };
 
-MutableList.prototype.countModification = function() {
-    this.modificationCount++;
+MutableList.prototype.reverse = function() {
+    this.countModification();
+    this.doReverse();
 };
 
+MutableList.prototype.doReverse = function() {
+    throw new Error("MutableList does not implement doReverse().");
+};
 MutableList.prototype.add = function(...objs) {
     if ( objs.length !== 0 ) {
         this.countModification();
         this.doAdd(objs);
     }
+
+    return this;
 };
 
 MutableList.prototype.doAdd = function(objs) {
@@ -320,20 +352,20 @@ MutableLinkedList.prototype.doInsertAfter = function(node, obj) {
     throw new Error("MutableLinkedList does not implement doInsertAfter().");
 };
 
-MutableLinkedList.prototype.deleteNode = function(node) {
+MutableLinkedList.prototype.deleteNode = function(doomed) {
     if ( this.isEmpty() ) {
         throw new Error("List is empty.");
-    } else if ( node === null ) {
+    } else if ( doomed === null ) {
         throw new Error("Invalid node.");
     } else {
-        let doomed = this.doDeleteNode(node);
+        let result = this.doDeleteNode(doomed);
         this.countModification();
 
-        return doomed;
+        return result;
     }
 };
 
-MutableLinkedList.prototype.doDeleteNode = function(node) {
+MutableLinkedList.prototype.doDeleteNode = function(doomed) {
     throw new Error("MutableLinkedList does not implement doDeleteNode().");
 };
 
@@ -365,6 +397,10 @@ function ArrayList(fillElt) {
 ArrayList.prototype = Object.create(MutableList.prototype);
 ArrayList.prototype.constructor = ArrayList;
 Object.defineProperty(ArrayList.prototype, "constructor", {enumerable: false, configurable: false});
+
+ArrayList.prototype.makeEmptyList = function() {
+    return new ArrayList(this.fillElt);
+};
 
 ArrayList.prototype.size = function() {
     return this.store.length;
@@ -415,15 +451,13 @@ ArrayList.prototype.doSet = function(i, obj) {
 };
 
 ArrayList.prototype.index = function(obj, test = (item, elt) => item === elt) {
-    return this.store.findIndex((elt) => test(obj, elt));
+    let i = this.store.findIndex((elt) => test(obj, elt));
+    return i < 0 ? null : i;
 };
 
-ArrayList.prototype.doSlice = function(i, n) {
-    let list = new ArrayList(this.fillElt);
-    list.add(...this.store.slice(i, i + n));
-
-    return list;
-};
+ArrayList.prototype.subseq = function(start, end) {
+    return this.store.slice(start, end);
+}
 
 //
 //    SinglyLinkedList
@@ -438,6 +472,10 @@ function SinglyLinkedList(fillElt) {
 SinglyLinkedList.prototype = Object.create(MutableLinkedList.prototype);
 SinglyLinkedList.prototype.constructor = SinglyLinkedList;
 Object.defineProperty(SinglyLinkedList.prototype, "constructor", {enumerable: false, configurable: false});
+
+SinglyLinkedList.prototype.makeEmptyList = function() {
+    return new SinglyLinkedList(this.fillElt);
+};
 
 SinglyLinkedList.prototype.size = function() {
     return this.count;
@@ -590,13 +628,9 @@ SinglyLinkedList.prototype.index = function(obj, test = (item, elt) => item === 
     return Node.index(this.front, obj, test);
 };
 
-SinglyLinkedList.prototype.doSlice = function(i, n) {
-    let sll = new SinglyLinkedList(this.fillElt);
-    sll.add(...Node.subseq(this.front, Math.min(i, this.count), Math.min(i+n, this.count)));
-
-    return sll;
-};
-    
+SinglyLinkedList.prototype.subseq = function(start, end) {
+    return Node.subseq(this.front, start, end);
+}
 
 //
 //     Dcons
@@ -612,7 +646,7 @@ Dcons.prototype.getContent = function() {
 };
 
 Dcons.prototype.setContent = function(obj) {
-    return this.content = obj;
+    this.content = obj;
 };
 
 Dcons.prototype.getPrevious = function() {
@@ -620,7 +654,7 @@ Dcons.prototype.getPrevious = function() {
 };
 
 Dcons.prototype.setPrevious = function(node) {
-    return this.previous = node;
+    this.previous = node;
 };
 
 Dcons.prototype.getNext = function() {
@@ -628,7 +662,7 @@ Dcons.prototype.getNext = function() {
 };
 
 Dcons.prototype.setNext = function(node) {
-    return this.next = node;
+    this.next = node;
 };
 
 Dcons.prototype.link = function(node) {
@@ -697,15 +731,18 @@ Dcons.prototype.exciseChild = function() {
 //
 //     Dcursor
 //
-function Dcursor(head, size) {
+function Dcursor(head, size, previous, next) {
     this.head = head;
     this.size = size;
     this.node = this.head();
     this.index = 0;
+    this.previous = previous;
+    this.next = next;
 }
 
 Dcursor.prototype.isInitialized = function() {
-    return this.node !== null;
+//    return this.node !== null;
+    return this.node !== undefined;
 };
 
 Dcursor.prototype.reset = function() {
@@ -727,7 +764,7 @@ Dcursor.prototype.advance = function(step = 1) {
     } else {
         for (let i = 0; i < step; i++) {
             this.index++;
-            this.node = this.node.getNext();
+            this.node = this.next(this.node); // ????????????
         }
 //        this.index = this.index % this.list.size();
         this.index = mod(this.index, this.size());
@@ -740,7 +777,7 @@ Dcursor.prototype.rewind = function(step = 1) {
     } else {
         for (let i = 0; i < step; i++) {
             this.index--;
-            this.node = this.node.getPrevious();
+            this.node = this.previous(this.node);
         }
 //        this.index = this.index % this.list.size(); // Wrong for negative index!!! % is REM not MOD!!
         this.index = mod(this.index, this.size());
@@ -754,7 +791,7 @@ Dcursor.prototype.bump = function() {
     if ( !this.isInitialized() ) {
         throw new Error("Cursor has not been initialized");
     } else {
-        this.node = this.node.getNext();
+        this.node = this.next(this.node);
     }
 };
 
@@ -769,8 +806,8 @@ Dcursor.prototype.nudge = function() {
 //
 //     DcursorB
 //
-function DcursorB(head, size) {
-    Dcursor.call(this, head, size);
+function DcursorB(head, size, previous, next) {
+    Dcursor.call(this, head, size, previous, next);
 }
 
 DcursorB.prototype = Object.create(Dcursor.prototype);
@@ -783,7 +820,7 @@ DcursorB.prototype.advance = function(step = 1) {
     } else {
         for (let i = 0; i < step; i++) {
             this.index++;
-            this.node = this.node.getPrevious();
+            this.node = this.previous(node);
         }
 
         this.index = mod(this.index, this.size());
@@ -796,7 +833,7 @@ DcursorB.prototype.rewind = function(step = 1) {
     } else {
         for (let i = 0; i < step; i++) {
             this.index--;
-            this.node = this.node.getNext();
+            this.node = this.next(node);
         }
 
         this.index = mod(this.index, this.size());
@@ -812,24 +849,178 @@ DcursorB.prototype.bump = function() {
 };
 
 //
-//     DoublyLinkedList
+//     DcursorList
 //
-function DoublyLinkedList(fillElt) {
+function DcursorList(fillElt) {
     MutableLinkedList.call(this, fillElt);
-    this.store = null;
-    this.count = 0;
     
     this.cursor = this.setupCursor();
 }
 
-DoublyLinkedList.prototype = Object.create(MutableLinkedList.prototype);
+DcursorList.prototype = Object.create(MutableLinkedList.prototype);
+DcursorList.prototype.constructor = DcursorList;
+Object.defineProperty(DcursorList.prototype, "constructor", {enumerable: false, configurable: false});
+
+DcursorList.prototype.setupCursor = function() {
+    throw new Error("DcursorList does not implement setupCursor().");
+};
+
+DcursorList.prototype.nthDllNode = function(n) {
+    function repositionCursor(cursor, i, count) {
+        if ( i === 0 ) {
+            cursor.reset();
+        } else if ( i < cursor.index ) {
+            let indexDelta = cursor.index - i;
+            let startDelta = i;
+
+            if ( startDelta < indexDelta ) {
+                cursor.reset();
+                cursor.advance(startDelta);
+            } else {
+                cursor.rewind(indexDelta);
+            }
+        } else if ( i > cursor.index ) {
+            let indexDelta = i - cursor.index;
+            let endDelta = count - i;
+
+            if ( indexDelta <= endDelta ) {
+                cursor.advance(indexDelta);
+            } else {
+                cursor.reset();
+                cursor.rewind(endDelta);
+            }
+        }
+    }
+
+    let count = this.size();
+    if ( this.isEmpty() ) {
+        throw new Error("List is empty");
+    } else if ( n < 0  ||  n >= count ) {
+        throw new Error(`Invalid index: ${n}`);
+    } else {
+        repositionCursor(this.cursor, n, count);
+
+        return this.cursor.node;
+    }
+};
+
+DcursorList.prototype.doGet = function(i) {
+    return this.nthDllNode(i).getContent();
+};
+
+DcursorList.prototype.doSet = function(i, obj) {
+    this.nthDllNode(i).setContent(obj);
+};
+
+DcursorList.prototype.doAdd = function(objs) {
+    this.addElements(objs);
+    
+    if ( !this.cursor.isInitialized() ) {
+        this.cursor.reset();
+    }
+};
+
+DcursorList.prototype.addElements = function(objs) {
+    throw new Error("DcursorList does not implement addElements().");
+};
+
+DcursorList.prototype.doDoInsert = function(i, obj) {
+    this.insertElement(i, obj);
+    
+    if ( !this.cursor.isInitialized()  ||
+         isBetweenInclusive(i, 0, this.cursor.index)  ||
+         (i < 0  &&  isBetweenInclusive(i+this.count, 0, this.cursor.index)) ) {
+        this.cursor.reset();
+    }
+};
+
+DcursorList.prototype.insertElement = function(i, obj) {
+    throw new Error("DcursorList does not implement insertElement().");
+};
+
+DcursorList.prototype.doDoDelete = function(i) {
+    let doomed = this.deleteElement(i);
+
+    this.cursor.reset();
+
+    return doomed;
+};
+
+DcursorList.prototype.deleteElement = function(i) {
+    throw new Error("DcursorList does not implement deleteElement().");
+};
+
+DcursorList.prototype.doInsertBefore = function(node, obj) {
+    this.insertEltBefore(node, obj);
+
+    this.cursor.reset();
+};
+
+DcursorList.prototype.insertEltBefore = function(node, obj) {
+    throw new Error("DcursorList does not implement insertEltBefore().");
+};
+
+DcursorList.prototype.doInsertAfter = function(node, obj) {
+    this.insertEltAfter(node, obj);
+
+    this.cursor.reset();
+};
+
+DcursorList.prototype.insertEltAfter = function(node, obj) {
+    throw new Error("DcursorList does not implement insertEltAfter().");
+};
+
+DcursorList.prototype.doDeleteNode = function(doomed) {
+    let result = this.deleteThisNode(doomed);
+
+    this.cursor.reset();
+
+    return result;
+};
+
+DcursorList.prototype.deleteThisNode = function(doomed) {
+    throw new Error("DcursorList does not implement deleteThisNode().");
+};
+
+DcursorList.prototype.doDeleteChild = function(parent) {
+    let result = this.deleteChildNode(parent);
+
+    this.cursor.reset();
+
+    return result;
+};
+
+DcursorList.prototype.deleteChildNode = function(parent) {
+    throw new Error("DcursorList does not implement deleteChildNode().");
+};
+
+
+//
+//     DoublyLinkedList
+//
+function DoublyLinkedList(fillElt) {
+    DcursorList.call(this, fillElt);
+    this.store = null;
+    this.count = 0;
+}
+
+DoublyLinkedList.prototype = Object.create(DcursorList.prototype);
 DoublyLinkedList.prototype.constructor = DoublyLinkedList;
 Object.defineProperty(DoublyLinkedList.prototype, "constructor", {enumerable: false, configurable: false});
 
 DoublyLinkedList.prototype.setupCursor = function() {
     let list = this;
     
-    return new Dcursor(() => list.store, () => list.count);
+    return new Dcursor(() => list.store,
+                       () => list.count,
+//                       Dcons.prototype.getPrevious, // No `this` context?!?!
+                       (node) => node.getPrevious(),
+                       (node) => node.getNext());
+//                       Dcons.prototype.getNext);
+};
+
+DoublyLinkedList.prototype.makeEmptyList = function() {
+    return new DoublyLinkedList(this.fillElt);
 };
 
 DoublyLinkedList.prototype.size = function() {
@@ -844,23 +1035,24 @@ DoublyLinkedList.prototype.isEmpty = function() {
 //     Break all of the links to prevent memory leak!
 //     
 DoublyLinkedList.prototype.doClear = function() {
-    let dcons = this.store;
-    for (let i = 0; i < this.size(); i++) {
-        dcons.setPrevious(null);
-        dcons = dcons.getNext();
+    if ( !this.isEmpty() ) {
+        let dcons = this.store;
+        for (let i = 0; i < this.size(); i++) {
+            dcons.setPrevious(null);
+            dcons = dcons.getNext();
+        }
+        
+        this.store.setNext(null);
+        this.store = null;
+        this.count = 0;
+        this.cursor.reset();
     }
-
-    this.store.setNext(null);
-    this.store = null;
-    this.count = 0;
-    this.cursor.reset();
 };
 
 DoublyLinkedList.prototype.iterator = function() {
     let list = this;
-    let dcursor = list.setupCursor();
 
-    return new MutableCollectionIterator(Cursor.makeDoublyLinkedListCursor(dcursor),
+    return new MutableCollectionIterator(Cursor.makeDcursorListCursor(list.setupCursor()),
                                          () => list.modificationCount);
 };
 
@@ -885,15 +1077,17 @@ DoublyLinkedList.prototype.listIterator = function(start = 0) {
 //     return findObject(this.store, 0);
 // };
 
-DoublyLinkedList.prototype.doAdd = function(objs) {
-    function addNodes(head, start, objs) {
+DoublyLinkedList.prototype.addElements = function(objs) {
+    let list = this;
+    function addNodes(start) {
         let dcons = start;
-        for (let i = 0; i < objs.length; i++) {
+        for (let i = 1; i < objs.length; i++) {
             dcons.link(new Dcons(objs[i]));
             dcons = dcons.getNext();
         }
 
-        dcons.link(head);
+        dcons.link(list.store);
+        list.count += objs.length;
     }
 
     let dcons = new Dcons(objs[0]);
@@ -901,145 +1095,62 @@ DoublyLinkedList.prototype.doAdd = function(objs) {
     if ( this.isEmpty() ) {
         this.store = dcons;
     } else {
-        let tail = this.store.getPrevious();
-        tail.link(dcons);
+        this.store.getPrevious().link(dcons);
     }
 
-    addNodes(this.store, dcons, objs.slice(1));
-    this.count += objs.length;
-
-    if ( !this.cursor.isInitialized() ) {
-        this.cursor.reset();
-    }
-};
-
-// DoublyLinkedList.prototype.nthDcons = function(i) {
-//     if ( i < 0  ||  i >= this.size() ) {
-//         throw new Error(`Invalid index: ${i}`);
-//     } else if ( this.isEmpty() ) {
-//         throw new Error("List is empty");
-//     } else if ( i === 0 ) {
-//         return this.store;
-//     } else if ( i === this.cursor.index ) {
-//         return this.cursor.node;
-//     } else if ( i < this.cursor.index / 2 ) {
-//         this.cursor.reset();
-//         this.cursor.advance(i);
-//         return this.cursor.node;
-//     } else if ( i < this.cursor.index ) {
-//         this.cursor.rewind(this.cursor.index - i);
-//         return this.cursor.node;
-//     } else if ( i <= (this.count + this.cursor.index) / 2 ) {
-//         this.cursor.advance(i - this.cursor.index);
-//         return this.cursor.node;
-//     } else {
-//         this.cursor.reset();
-//         this.cursor.rewind(this.count - i);
-//         return this.cursor.node;
-//     }
-// };
-
-DoublyLinkedList.prototype.nthDcons = function(i) {
-    function repositionCursor(cursor, i, count) {
-        if ( i === 0 ) {
-            cursor.reset();
-        } else if ( i < cursor.index ) {
-            let indexDelta = cursor.index - i;
-
-            if ( i < indexDelta ) {
-                cursor.reset();
-                cursor.advance(i);
-            } else {
-                cursor.rewind(indexDelta);
-            }
-        } else if ( i > cursor.index ) {
-            let indexDelta = i - cursor.index;
-            let countDelta = count - i;
-
-            if ( indexDelta <= countDelta ) {
-                cursor.advance(indexDelta);
-            } else {
-                cursor.reset();
-                cursor.rewind(countDelta);
-            }
-        }
-    }
-    
-    if ( this.isEmpty() ) {
-        throw new Error("List is empty");
-    } else if ( i < 0  ||  i >= this.size() ) {
-        throw new Error(`Invalid index: ${i}`);
-    } else {
-        repositionCursor(this.cursor, i, this.count);
-
-        return this.cursor.node;
-    }
+    addNodes(dcons);
 };
 
 function isBetweenInclusive(i, low, high) {
     return low <= i  &&  i <= high;
 }
 
-DoublyLinkedList.prototype.doDoInsert = function(i, obj) {
-    this.doDoDoInsert(i, obj);
-    
-    this.count++;
-
-    if ( !this.cursor.isInitialized()  ||
-         isBetweenInclusive(i, 0, this.cursor.index)  ||
-         (i < 0  &&  isBetweenInclusive(i+this.count, 0, this.cursor.index)) ) {
-        this.cursor.reset();
-    }
-};
-
-DoublyLinkedList.prototype.doDoDoInsert = function(i, obj) {   // !!!
-    this.nthDcons(i).spliceBefore(obj);
+DoublyLinkedList.prototype.insertElement = function(i, obj) {
+    this.nthDllNode(i).spliceBefore(obj);
 
     if ( i === 0 ) {
         this.store = this.store.getPrevious();
     }
+
+    this.count++;
 };
 
-DoublyLinkedList.prototype.doInsertBefore = function(node, obj) {
-    doDoInsertBefore(node, obj);
+DoublyLinkedList.prototype.insertEltBefore = function(node, obj) {
+    this.doInsertEltBefore(node, obj);
     
     this.count++;
-    this.cursor.reset();
 };
 
-DoublyLinkedList.prototype.doDoInsertBefore = function(node, obj) {
-    node.spliceBefore(obj)
+DoublyLinkedList.prototype.doInsertEltBefore = function(node, obj) {
+    node.spliceBefore(obj);
 
     if ( node === this.store ) {
         this.store = this.store.getPrevious();
     }
 };
 
-DoublyLinkedList.prototype.doInsertAfter = function(node, obj) {
-    doDoInsertAfter(node, obj);
+DoublyLinkedList.prototype.insertEltAfter = function(node, obj) {
+    this.doInsertEltAfter(node, obj);
 
     this.count++;
-    this.cursor.reset();
 };
 
-DoublyLinkedList.prototype.doDoInsertAfter = function(node, obj) {
-    node.spliceAfter(obj)
+DoublyLinkedList.prototype.doInsertEltAfter = function(node, obj) {
+    node.spliceAfter(obj);
 };
 
-DoublyLinkedList.prototype.doDoDelete = function(i) {
-    let doomed = this.deleteDcons(this.nthDcons(i));
+DoublyLinkedList.prototype.deleteElement = function(i) {
+    let doomed = this.deleteDcons(this.nthDllNode(i));
 
     this.count--;
-    this.cursor.reset();
 
     return doomed;
 };
 
-DoublyLinkedList.prototype.doDeleteNode = function(doomed) {
+DoublyLinkedList.prototype.deleteThisNode = function(doomed) {
     let result = this.deleteDcons(doomed);
 
     this.count--;
-    this.cursor.reset();
 
     return result;
 };
@@ -1063,16 +1174,15 @@ DoublyLinkedList.prototype.deleteDcons = function(doomed) {
 //
 //    This is not really needed for DoublyLinkedList.
 //    
-DoublyLinkedList.prototype.doDeleteChild = function(parent) {
-    let result = this.doDoDeleteChild(parent);
+DoublyLinkedList.prototype.deleteChildNode = function(parent) {
+    let result = this.doDeleteChildNode(parent);
 
     this.count--;
-    this.cursor.reset();
 
     return result;
 };
 
-DoublyLinkedList.prototype.doDoDeleteChild = function(parent) {
+DoublyLinkedList.prototype.doDeleteChildNode = function(parent) {
     let child = parent.getNext();
 
     if ( child === this.store ) {
@@ -1082,25 +1192,26 @@ DoublyLinkedList.prototype.doDoDeleteChild = function(parent) {
     }
 };
 
-DoublyLinkedList.prototype.index = function(obj, test = (item, elt) => item === elt) {
-    let dcons = this.store;
+// DoublyLinkedList.prototype.index = function(obj, test = (item, elt) => item === elt) {
+//     let dcons = this.store;
 
-    for (let i = 0; i < this.size(); i++) {
-        if ( test(obj, dcons.getContent()) ) {
-            return i;
-        }
+//     for (let i = 0; i < this.size(); i++) {
+//         if ( test(obj, dcons.getContent()) ) {
+//             return i;
+//         }
 
-        dcons = dcons.getNext();
-    }
+//         dcons = dcons.getNext();
+//     }
 
-    return -1;
-}
+// //    return -1;
+//     return null;
+// }
 
 DoublyLinkedList.prototype.subseq = function(start, end) {
     let result = [];
 
     if ( start < end ) {
-        let dcons = this.nthDcons(start);
+        let dcons = this.nthDllNode(start);
 
         for (let i = start; i < end; i++) {
             result.push(dcons.getContent());
@@ -1111,29 +1222,10 @@ DoublyLinkedList.prototype.subseq = function(start, end) {
     return result;
 };
         
-DoublyLinkedList.prototype.makeEmptyList = function() {
-    return new DoublyLinkedList(this.fillElt);
-};
-
-DoublyLinkedList.prototype.doSlice = function(i, n) {
-    let dll = this.makeEmptyList();
-    dll.add(...this.subseq(Math.min(i, this.count), Math.min(i+n, this.count)));
-
-    return dll;
-};
-
-DoublyLinkedList.prototype.doGet = function(i) {
-    return this.nthDcons(i).getContent();
-};
-
-DoublyLinkedList.prototype.doSet = function(i, obj) {
-    this.nthDcons(i).setContent(obj);
-};
-
 //
 //     DoublyLinkedListRatchet
 //
-function DoublyLinkedListRatchet(fillElt, direction=DoublyLinkedListRatchet.Direction.Forward) {
+function DoublyLinkedListRatchet(fillElt, direction = DoublyLinkedListRatchet.Direction.Forward) {
     this.direction = direction;
     DoublyLinkedList.call(this, fillElt);
 }
@@ -1143,6 +1235,29 @@ DoublyLinkedListRatchet.prototype.constructor = DoublyLinkedListRatchet;
 Object.defineProperty(DoublyLinkedListRatchet.prototype, "constructor", {enumerable: false, configurable: false});
 
 DoublyLinkedListRatchet.Direction = enumeration({Forward: 0, Backward: 1});
+
+DoublyLinkedListRatchet.prototype.setupCursor = function() {
+    let list = this;
+    
+    switch ( this.direction ) {
+        case DoublyLinkedListRatchet.Direction.Forward:
+            return new Dcursor(() => list.store,
+                               () => list.count,
+                               (node) => node.getPrevious(),
+                               (node) => node.getNext());
+        case DoublyLinkedListRatchet.Direction.Backward:
+            return new DcursorB(() => list.store,
+                                () => list.count,
+                                (node) => node.getPrevious(),
+                                (node) => node.getNext());
+        default:
+            throw new Error("Invalid direction!");
+    }
+};
+
+DoublyLinkedListRatchet.prototype.makeEmptyList = function() {
+    return new DoublyLinkedListRatchet(this.fillElt, this.direction);
+};
 
 DoublyLinkedListRatchet.prototype.ratchetForward = function(node) {
     switch ( this.direction ) {
@@ -1203,19 +1318,6 @@ DoublyLinkedListRatchet.prototype.ratchetDlink = function(node1, node2) {
     }
 };
 
-DoublyLinkedListRatchet.prototype.setupCursor = function() {
-    let list = this;
-    
-    switch ( this.direction ) {
-        case DoublyLinkedListRatchet.Direction.Forward:
-            return new Dcursor(() => list.store, () => list.count);
-        case DoublyLinkedListRatchet.Direction.Backward:
-            return new DcursorB(() => list.store, () => list.count);
-        default:
-            throw new Error("Invalid direction!");
-    }
-};
-
 //
 //     Break all of the links to prevent memory leak!
 //     
@@ -1223,7 +1325,7 @@ DoublyLinkedListRatchet.prototype.doClear = function() {
     if ( !this.isEmpty() ) {
         let dcons = this.store;
         for (let i = 0; i < this.size(); i++) {
-            this.setRatchetBackwards(dcons, null);
+            this.setRatchetBackward(dcons, null);
             dcons = this.ratchetForward(dcons);
         }
 
@@ -1234,25 +1336,21 @@ DoublyLinkedListRatchet.prototype.doClear = function() {
     }
 };
 
-DoublyLinkedListRatchet.prototype.doAdd = function(objs) {
+DoublyLinkedListRatchet.prototype.addElements = function(objs) {
     let list = this;
     function addNodeToEnd(previousEnd, newEnd) {
-//        this.ratchetDlink(previousEnd, newEnd);
         list.ratchetDlink(previousEnd, newEnd);
     }
 
-    function addNodes(start, objs) {
+    function addNodes(start) {
         let dcons = start;
         for (let i = 1; i < objs.length; i++) {
             addNodeToEnd(dcons, new Dcons(objs[i]));
-//            dcons = this.ratchetForward(dcons);
             dcons = list.ratchetForward(dcons);
         }
 
         list.ratchetDlink(dcons, list.store);
         list.count += objs.length;
-        // this.ratchetDlink(dcons, this.store);
-        // this.count += objs.length;
     }
 
     let dcons = new Dcons(objs[0]);
@@ -1263,46 +1361,62 @@ DoublyLinkedListRatchet.prototype.doAdd = function(objs) {
         addNodeToEnd(this.ratchetBackward(this.store), dcons);
     }
 
-    addNodes(dcons, objs);
-
-    if ( !this.cursor.isInitialized() ) {
-        this.cursor.reset();
-    }
+    addNodes(dcons);
 };
 
-DoublyLinkedListRatchet.prototype.doDoDoInsert = function(i, obj) {
+DoublyLinkedListRatchet.prototype.insertElement = function(i, obj) {
     switch ( this.direction ) {
         case DoublyLinkedListRatchet.Direction.Forward:
-            this.nthDcons(i).spliceBefore(obj);
+            this.nthDllNode(i).spliceBefore(obj);
             break;
         case DoublyLinkedListRatchet.Direction.Backward:
-            this.nthDcons(i).spliceAfter(obj);
+            this.nthDllNode(i).spliceAfter(obj);
             break;
         default:
             throw new Error("Invalid direction!");
     }
 
     if ( i === 0 ) {
-        this.store = this.ratchetBackward(store);
+        this.store = this.ratchetBackward(this.store);
     }
+
+    this.count++;
 };
 
-DoublyLinkedListRatchet.prototype.doDoInsertBefore = function(node, obj) {
-    node.spliceBefore(obj)
+DoublyLinkedListRatchet.prototype.doInsertEltBefore = function(node, obj) {
+    switch ( this.direction ) {
+        case DoublyLinkedListRatchet.Direction.Forward:
+            node.spliceBefore(obj);
+            break;
+        case DoublyLinkedListRatchet.Direction.Backward:
+            node.spliceAfter(obj);
+            break;
+        default:
+            throw new Error("Invalid direction!");
+    }
 
     if ( node === this.store ) {
-        this.store = this.store.getPrevious();
+        this.store = this.ratchetBackward(this.store);
     }
 };
 
-DoublyLinkedListRatchet.prototype.doDoInsertAfter = function(node, obj) {
-    node.spliceAfter(obj)
+DoublyLinkedListRatchet.prototype.doInsertEltAfter = function(node, obj) {
+    switch ( this.direction ) {
+        case DoublyLinkedListRatchet.Direction.Forward:
+            node.spliceAfter(obj);
+            break;
+        case DoublyLinkedListRatchet.Direction.Backward:
+            node.spliceBefore(obj);
+            break;
+        default:
+            throw new Error("Invalid direction!");
+    }
 };
 
 //
 //    This is not really needed for DoublyLinkedListRatchet.
 //    
-DoublyLinkedListRatchet.prototype.doDoDeleteChild = function(parent) {
+DoublyLinkedListRatchet.prototype.doDeleteChildNode = function(parent) {
     let child = this.ratchetForward(parent);
 
     if ( child === this.store ) {
@@ -1320,7 +1434,7 @@ DoublyLinkedListRatchet.prototype.subseq = function(start, end) {
     let result = [];
 
     if ( start < end ) {
-        let dcons = this.nthDcons(start);
+        let dcons = this.nthDllNode(start);
 
         for (let i = start; i < end; i++) {
             result.push(dcons.getContent());
@@ -1331,11 +1445,7 @@ DoublyLinkedListRatchet.prototype.subseq = function(start, end) {
     return result;
 };
         
-DoublyLinkedListRatchet.prototype.makeEmptyList = function() {
-    return new DoublyLinkedListRatchet(this.fillElt, this.direction);
-};
-
-DoublyLinkedListRatchet.prototype.reverse = function() {
+DoublyLinkedListRatchet.prototype.doReverse = function() {
     switch ( this.direction ) {
         case DoublyLinkedListRatchet.Direction.Forward:
             this.direction = DoublyLinkedListRatchet.Direction.Backward;
@@ -1355,6 +1465,236 @@ DoublyLinkedListRatchet.prototype.reverse = function() {
 };
 
 //
+//     Dnode
+//
+function Dnode(content) {
+    this.content = content;
+}
+
+Dnode.prototype.getContent = function() {
+    return this.content;
+};
+
+Dnode.prototype.setContent = function(obj) {
+    this.content = obj;
+};
+
+//
+//     DoublyLinkedListMap
+//
+function DoublyLinkedListMap(fillElt) {
+    DcursorList.call(this, fillElt);
+    this.head = null
+    this.forward = new Map();
+    this.backward = new Map();
+}
+
+DoublyLinkedListMap.prototype = Object.create(DcursorList.prototype);
+DoublyLinkedListMap.prototype.constructor = DoublyLinkedListMap;
+Object.defineProperty(DoublyLinkedListMap.prototype, "constructor", {enumerable: false, configurable: false});
+
+DoublyLinkedListMap.prototype.setupCursor = function() {
+    let list = this;
+    
+    return new Dcursor(() => list.head,
+                       () => list.size(),
+                       (node) => list.previousDnode(node),
+                       (node) => list.nextDnode(node));
+};
+
+DoublyLinkedListMap.prototype.makeEmptyList = function() {
+    return new DoublyLinkedListMap(this.fillElt);
+};
+
+DoublyLinkedListMap.prototype.nextDnode = function(node) {
+    return this.forward.get(node)  ||  null;
+};
+
+DoublyLinkedListMap.prototype.setNextDnode = function(node, obj) {
+    this.forward.set(node, obj);
+};
+
+DoublyLinkedListMap.prototype.previousDnode = function(node) {
+    return this.backward.get(node)  ||  null;
+};
+
+DoublyLinkedListMap.prototype.setPreviousDnode = function(node, obj) {
+    this.backward.set(node, obj);
+};
+
+DoublyLinkedListMap.prototype.linkDnodes = function(previous, next) {
+    this.setNextDnode(previous, next);
+    this.setPreviousDnode(next, previous);
+};
+
+DoublyLinkedListMap.prototype.spliceDnodeBefore = function(node, obj) {
+    let newDnode = new Dnode(obj);
+    this.linkDnodes(this.previousDnode(node), newDnode);
+    this.linkDnodes(newDnode, node);
+};
+
+DoublyLinkedListMap.prototype.spliceDnodeAfter = function(node, obj) {
+    let newDnode = new Dnode(obj);
+    this.linkDnodes(newDnode, this.nextDnode(node));
+    this.linkDnodes(node, newDnode);
+};
+
+DoublyLinkedListMap.prototype.exciseDnode = function(doomed) {
+    if ( doomed === this.nextDnode(doomed) ) {
+        throw new Error("Cannot delete sole node.");
+    } else {
+        this.linkDnodes(this.previousDnode(doomed), this.nextDnode(doomed));
+
+        return doomed.getContent();
+    }
+};
+        
+DoublyLinkedListMap.prototype.exciseChildDnode = function(parent) {
+    let child = this.nextDnode(parent);
+    if ( child === this.head ) {
+        throw new Error("Parent must have child node");
+    } else {
+        this.linkDnodes(parent, this.nextDnode(child));
+
+        return child.getContent();
+    }
+};
+        
+DoublyLinkedListMap.prototype.size = function() {
+    return this.forward.size;
+};
+
+DoublyLinkedListMap.prototype.isEmpty = function() {
+    return this.head === null;
+};
+
+DoublyLinkedListMap.prototype.doClear = function() {
+    if ( !this.isEmpty() ) {
+        this.head = null;
+        this.forward.clear();
+        this.backward.clear();
+        this.cursor.reset();
+    }
+};
+
+DoublyLinkedListMap.prototype.iterator = function() {
+    let list = this;
+
+    return new MutableCollectionIterator(Cursor.makeDcursorListCursor(list.setupCursor()),
+                                         () => list.modificationCount);
+};
+
+DoublyLinkedListMap.prototype.listIterator = function(start = 0) {
+    let list = this;
+
+    return new DoublyLinkedListListIterator(this, () => list.modificationCount, () => list.setupCursor(), start);
+};
+
+DoublyLinkedListMap.prototype.addElements = function(objs) {
+    let list = this;
+    function addNodes(start) {
+        let dnode = start;
+        for (let i = 1; i < objs.length; i++) {
+            list.linkDnodes(dnode, new Dnode(objs[i]));
+            dnode = list.nextDnode(dnode);
+        }
+
+        list.linkDnodes(dnode, list.head);
+    }
+
+    let dnode = new Dnode(objs[0]);
+    
+    if ( this.isEmpty() ) {
+        this.head = dnode;
+    } else {
+        this.linkDnodes(this.previousDnode(this.head), dnode);
+    }
+
+    addNodes(dnode);
+};
+
+DoublyLinkedListMap.prototype.insertElement = function(i, obj) {
+    this.spliceDnodeBefore(this.nthDllNode(i), obj);
+
+    if ( i === 0 ) {
+        this.head = this.previousDnode(this.head);
+    }
+};
+
+DoublyLinkedListMap.prototype.insertEltBefore = function(node, obj) {
+    this.spliceDnodeBefore(node, obj);
+
+    if ( node === this.head ) {
+        this.head = this.previousDnode(this.head);
+    }
+};
+
+DoublyLinkedListMap.prototype.insertEltAfter = function(node, obj) {
+    this.spliceDnodeAfter(node, obj);
+};
+
+DoublyLinkedListMap.prototype.deleteElement = function(i) {
+    return this.deleteDnode(this.nthDllNode(i));
+};
+
+DoublyLinkedListMap.prototype.deleteThisNode = function(doomed) {
+    return this.deleteDnode(doomed);
+};
+
+DoublyLinkedListMap.prototype.deleteDnode = function(doomed) {
+    if ( doomed === this.nextDnode(doomed) ) {
+        this.setNextDnode(doomed, null);
+        this.head = null;
+    } else {
+        this.exciseDnode(doomed);
+        if ( doomed === this.head ) {
+            this.head = this.nextDnode(doomed);
+        }
+    }
+    
+    this.forward.delete(doomed);
+    this.backward.delete(doomed);
+    return doomed.getContent();
+};
+
+DoublyLinkedListMap.prototype.deleteChildNode = function(parent) {
+    let child = this.nextDnode(parent);
+
+    if ( child === this.head ) {
+        throw new Error("Parent must have child node");
+    } else {
+        this.exciseChildDnode(parent);
+
+        this.forward.delete(child);
+        this.backward.delete(child);
+        
+        return child.getContent();
+    }
+};
+
+
+DoublyLinkedListMap.prototype.subseq = function(start, end) {
+    let result = [];
+
+    if ( start < end ) {
+        let dnode = this.nthDllNode(start);
+
+        for (let i = start; i < end; i++) {
+            result.push(dnode.getContent());
+            dnode = this.nextDnode(dnode);
+        }
+    }
+
+    return result;
+};
+
+DoublyLinkedListMap.prototype.doReverse = function() {
+    this.head = this.previousDnode(this.head);
+    [this.forward, this.backward] = [this.backward, this.forward];
+    this.cursor.reset();
+};
+
+//
 //     HashTableList
 //     
 function HashTableList(fillElt) {
@@ -1366,6 +1706,10 @@ function HashTableList(fillElt) {
 HashTableList.prototype = Object.create(MutableList.prototype);
 HashTableList.prototype.constructor = HashTableList;
 Object.defineProperty(HashTableList.prototype, "constructor", {enumerable: false, configurable: false});
+
+HashTableList.prototype.makeEmptyList = function() {
+    return new HashTableList(this.fillElt);
+};
 
 HashTableList.prototype.size = function() {
     return this.count;
@@ -1437,29 +1781,19 @@ HashTableList.prototype.doSet = function(i, obj) {
     this.store[i] = obj;
 };
 
-HashTableList.prototype.index = function(obj, test = (item, elt) => item === elt) {
-    for (let i = 0; i < this.count; i++) {
-        if ( test(obj, this.get(i)) ) {
-            return i;
-        }
-    }
+// HashTableList.prototype.index = function(obj, test = (item, elt) => item === elt) {
+//     for (let i = 0; i < this.count; i++) {
+//         if ( test(obj, this.get(i)) ) {
+//             return i;
+//         }
+//     }
 
-    return -1;
-};
+// //    return -1;
+//     return null;
+// };
 
-HashTableList.prototype.doSlice = function(i, n) {
-    let list = new HashTableList(this.fillElt);
-    let subseq = [];
-    let start = Math.min(i, this.count);
-    let end = Math.min(i+n, this.count);
-
-    for (let j = start; j < end; j++) {
-        subseq.push(this.get(j));
-    }
-
-    list.add(...subseq);
-
-    return list;
+HashTableList.prototype.subseq = function(start, end) {
+    return [...Array(end-start)].map((_, i)  => this.get(i+start));
 };
         
 //
@@ -1474,6 +1808,10 @@ function PersistentList(fillElt) {
 PersistentList.prototype = Object.create(List.prototype);
 PersistentList.prototype.constructor = PersistentList;
 Object.defineProperty(PersistentList.prototype, "constructor", {enumerable: false, configurable: false});
+
+PersistentList.prototype.makeEmptyList = function() {
+    return new PersistentList(this.fillElt);
+};
 
 PersistentList.initializeList = function(fillElt, store, count) {
     let pl = new PersistentList(fillElt);
@@ -2183,7 +2521,7 @@ SinglyLinkedListListIterator.prototype.doAddAfter = function(obj) {
 //
 function DoublyLinkedListListIterator(list, modificationCount, initialize, start = 0) {
     MutableListListIterator.call(this, list, modificationCount);
-    this.initialize = this.initialize();
+    this.initialize = initialize;
     this.cursor = this.initialize();
     
     if ( start < 0 ) {

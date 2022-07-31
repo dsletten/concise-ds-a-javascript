@@ -78,8 +78,6 @@ Node.prototype.setRest = function(tail) {
 };
     
 Node.prototype.toString = function() {
-    return carPrint(this.first()) + cdrPrint(this.rest());
-
     function carPrint(obj) {
         return "(" + obj;
     }
@@ -93,6 +91,8 @@ Node.prototype.toString = function() {
             return " " + obj.first() + cdrPrint(obj.rest());
         }
     }
+
+    return carPrint(this.first()) + cdrPrint(this.rest());
 };
 
 Node.prototype.spliceBefore = function(obj) {
@@ -158,7 +158,8 @@ Node.contains = function(node, obj, test = (item, elt) => item === elt) {
 Node.index = function(node, obj, test = (item, elt) => item === elt) {
     function index(node, i) {
         if ( node === null ) {
-            return -1;
+//            return -1;
+            return null;
         } else if ( test(obj, node.first()) ) {
             return i;
         } else {
@@ -230,7 +231,18 @@ Node.append = function(l1, l2) {
     if ( l1 === null ) {
         return l2;
     } else {
-        return new Node(l1.first(), Node.append(l1.rest(), l2));
+        //        return new Node(l1.first(), Node.append(l1.rest(), l2));
+        let head = new Node(l1.first(), l1.rest());
+        let tail = head
+
+        while ( tail.rest() !== null ) {
+            tail.setRest(new Node(tail.rest().first(), tail.rest().rest()));
+            tail = tail.rest();
+        }
+
+        tail.setRest(l2);
+
+        return head;
     }
 };
 
@@ -315,7 +327,7 @@ Cursor.makeSinglyLinkedListCursor = function(node) {
                       () => {node = node.rest();});
 };
 
-Cursor.makeDoublyLinkedListCursor = function(dcursor) {
+Cursor.makeDcursorListCursor = function(dcursor) {
     let sealedForYourProtection = true;
 
     return new Cursor(() => {return !dcursor.isInitialized() ||
