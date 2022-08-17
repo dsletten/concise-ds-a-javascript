@@ -132,72 +132,141 @@ Node.prototype.exciseChild = function() {
     return child.first();
 };
 
-Node.reverse = function(list) {
-    function reverse(list, rest) {
+// Node.reverse = function(list) {
+//     function reverse(list, rest) {
 
-        if ( list === null ) {
-            return rest;
-        } else {
-            return reverse(list.rest(), new Node(list.first(), rest));
-        }
+//         if ( list === null ) {
+//             return rest;
+//         } else {
+//             return reverse(list.rest(), new Node(list.first(), rest));
+//         }
+//     }
+
+//     return reverse(list, null);
+// };
+
+Node.reverse = function(list) {
+    let result = null;
+    let node = list;
+
+    while ( node !== null ) {
+        result = new Node(node.first(), result);
+        node = node.rest();
     }
 
-    return reverse(list, null);
+    return result;
 };
+
+// Node.contains = function(node, obj, test = (item, elt) => item === elt) {
+//     if ( node === null ) {
+//         return null;
+//     } else if ( test(obj, node.first()) ) {
+//         return node.first();
+//     } else {
+//         return Node.contains(node.rest(), obj, test);
+//     }
+// };
 
 Node.contains = function(node, obj, test = (item, elt) => item === elt) {
-    if ( node === null ) {
-        return null;
-    } else if ( test(obj, node.first()) ) {
-        return node.first();
-    } else {
-        return Node.contains(node.rest(), obj, test);
+    while ( node !== null ) {
+        if ( test(obj, node.first()) ) {
+            return node.first();
+        }
+
+        node = node.rest();
     }
+
+    return null;
 };
+
+// Node.index = function(node, obj, test = (item, elt) => item === elt) {
+//     function index(node, i) {
+//         if ( node === null ) {
+// //            return -1;
+//             return null;
+//         } else if ( test(obj, node.first()) ) {
+//             return i;
+//         } else {
+//             return index(node.rest(), i+1);
+//         }
+//     }
+
+//     return index(node, 0);
+// };
 
 Node.index = function(node, obj, test = (item, elt) => item === elt) {
-    function index(node, i) {
-        if ( node === null ) {
-//            return -1;
-            return null;
-        } else if ( test(obj, node.first()) ) {
+    let i = 0;
+    while ( node !== null ) {
+        if ( test(obj, node.first()) ) {
             return i;
-        } else {
-            return index(node.rest(), i+1);
         }
+
+        node = node.rest();
+        i++;
     }
 
-    return index(node, 0);
+    return null;
 };
 
+// Node.nthCdr = function(node, i) {
+//     if ( node === null ) {
+//         return null;
+//     } else if ( i === 0 ) {
+//         return node;
+//     } else {
+//         return Node.nthCdr(node.rest(), i-1);
+//     }
+// };
+
 Node.nthCdr = function(node, i) {
-    if ( node === null ) {
-        return null;
-    } else if ( i === 0 ) {
-        return node;
-    } else {
-        return Node.nthCdr(node.rest(), i-1);
+    if ( i < 0 ) {
+        throw new Error("Invalid index: " + i);
     }
+    
+    let j = 0;
+
+    while ( j !== i ) {
+        if ( node === null ) {
+            return null;
+        }
+
+        node = node.rest();
+        j++;
+    }
+
+    return node;
 };
 
 Node.nth = function(node, i) {
-    if ( node === null ) {
+    let nth = Node.nthCdr(node, i);
+
+    if ( nth === null ) {
         return null;
-    } else if ( i === 0 ) {
-        return node.first();
     } else {
-        return Node.nth(node.rest(), i-1);
+        return nth.first();
     }
+    // if ( node === null ) {
+    //     return null;
+    // } else if ( i === 0 ) {
+    //     return node.first();
+    // } else {
+    //     return Node.nth(node.rest(), i-1);
+    // }
 };
 
 Node.setNth = function(node, i, obj) {
-    if ( node !== null ) {
-        if ( i === 0 ) {
-            node.setFirst(obj);
-        } else {
-            Node.setNth(node.rest(), i-1, obj);
-        }
+    let nth = Node.nthCdr(node, i);
+
+    if ( nth !== null ) {
+        nth.setFirst(obj);
     }
+    // if ( node !== null ) {
+    //     if ( i === 0 ) {
+    //         node.setFirst(obj);
+    //     } else {
+    //         Node.setNth(node.rest(), i-1, obj);
+    //     }
+    // }
 };
 
 Node.subseq = function(node, start, end) {

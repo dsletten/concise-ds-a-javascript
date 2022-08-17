@@ -29,25 +29,24 @@
 function testListConstructor(listConstructor) {
     let list = listConstructor();
 
-    if ( !list.isEmpty() ) {
-        throw new Error("New list should be empty.");
-    } else if ( list.size() !== 0 ) {
-        throw new Error("Size of new list should be zero.");
-    } else if ( list.get(0) !== null ) {
-        throw new Error("Accessing element of empty list returns 'null'");
-    } else {
-        try {
-            list.delete(0);
-            throw new Error("Can't call delete() on empty list.");
-        } catch (e) {
-            switch (e.message) {
-                case "List is empty.":
-                    console.log("Got expected error: " + e);
-                    break;
-                default: throw e;
-            }
-        }
-    }
+    assert(list.isEmpty(), "New list should be empty.");
+    assert(list.size() === 0, "Size of new list should be zero.");
+    assert(list.get(0) === null, "Accessing element of empty list returns 'null'");
+
+        // try {
+        //     list.delete(0);
+        //     throw new Error("Can't call delete() on empty list.");
+        // } catch (e) {
+        //     switch (e.message) {
+        //         case "List is empty.":
+        //             console.log("Got expected error: " + e);
+        //             break;
+        //         default: throw e;
+        //     }
+        // }
+
+    let thrown = assertRaises(Error, () => list.delete(0), "Can't call delete() on empty list.");
+    console.log("Got expected error: " + thrown);
 
     return true;
 }
@@ -55,21 +54,13 @@ function testListConstructor(listConstructor) {
 function testListIsEmpty(listConstructor) {
     let list = listConstructor();
 
-    if ( !list.isEmpty() ) {
-        throw new Error("New list should be empty.");
-    }
+    assert(list.isEmpty(), "New list should be empty.");
 
     list.add(true);
-
-    if ( list.isEmpty() ) {
-        throw new Error("List with elt should not be empty.");
-    }
+    assert(!list.isEmpty(), "List with elt should not be empty.");
 
     list.delete(0);
-    
-    if ( !list.isEmpty() ) {
-        throw new Error("Empty list should be empty.");
-    }
+    assert(list.isEmpty(), "Empty list should be empty.");
 
     return true;
 }
@@ -77,45 +68,36 @@ function testListIsEmpty(listConstructor) {
 function testListSize(listConstructor, count = 1000) {
     let list = listConstructor();
 
-    if ( list.size() !== 0 ) {
-        throw new Error("Size of new list should be zero.");
-    }
+    assert(list.size() === 0, "Size of new list should be zero.");
 
     for (let i = 1; i <= count; i++) {
         list.add(i);
 
-        if ( list.size() !== i ) {
-            throw new Error("Size of list should be " + i);
-        }
+        assertListSize(list, i);
     }
 
     for (let i = count; i >= 1; i--) {
-        if ( list.size() !== i ) {
-            throw new Error("Size of list should be " + i);
-        }
+        assertListSize(list, i);
 
         list.delete(0);
     }
 
-    if ( list.size() !== 0 ) {
-        throw new Error("Size of empty list should be zero.");
-    }
+    assert(list.size() === 0, "Size of empty list should be zero.");
 
     return true;
+}
+
+function assertListSize(l, n) {
+    assert(l.size() === n, `Size of list should be ${n}`);
 }
 
 function testListClear(listConstructor, count = 1000) {
     let list = listConstructor().fill(count);
 
-    if ( list.isEmpty() ) {
-        throw new Error(`List should have ${count} elements.`);
-    }
+    assert(!list.isEmpty(), `List should have ${count} elements.`);
 
     list.clear();
-
-    if ( !list.isEmpty() ) {
-        throw new Error("List should be empty.");
-    }
+    assert(list.isEmpty(), "List should be empty.");
 
     return true;
 }
@@ -124,7 +106,7 @@ function testListContains(listConstructor, count = 1000) {
     let list = listConstructor().fill(count);
     
     for (let i = 1; i <= count; i++) {
-        assert(list.contains(i), `The list should contain the value ${i}`);
+        assert(list.contains(i) === i, `The list should contain the value ${i}`);
     }
 
     return true;
@@ -136,17 +118,10 @@ function testListContainsPredicate(listConstructor) {
     let uppers = [...Array(26)].map((_,i) => String.fromCharCode(i + 'A'.charCodeAt()));
     list.add(...lowers);
 
-    if ( !lowers.every(ch => list.contains(ch)) ) {
-        throw new Error("Should be matchy matchy.");
-    }
-
-    if ( uppers.some(ch => list.contains(ch)) ) {
-        throw new Error("Default test should fail.");
-    }
-
-    if ( !uppers.every(ch => list.contains(ch, (c1, c2) => c1 === c2.toUpperCase())) ) {
-        throw new Error("Specific test should succeed.");
-    }
+    assert(lowers.every(ch => list.contains(ch)), "Should be matchy matchy.");
+    assert(!uppers.some(ch => list.contains(ch)), "Default test should fail.");
+    assert(uppers.every(ch => list.contains(ch, (c1, c2) => c1 === c2.toUpperCase())),
+           "Specific test should succeed.");
     
     return true;
 }
@@ -154,17 +129,11 @@ function testListContainsPredicate(listConstructor) {
 function testListContainsArithmetic(listConstructor) {
     let list = listConstructor().fill(20);
 
-    if ( list.contains(3) !== 3 ) {
-        throw new Error("Literal 3 should be present in list.");
-    }
-
-    if ( list.contains(3, (item, elt) => elt === item + 1) !== 4 ) {
-        throw new Error("List contains the element one larger than 3.");
-    }
-
-    if ( list.contains(2, (item, elt) => elt > item * 2) !== 5 ) {
-        throw new Error("First element in list larger than 2 doubled is 5.");
-    }
+    assert(list.contains(3) === 3, "Literal 3 should be present in list.");
+    assert(list.contains(3, (item, elt) => elt === item + 1) === 4,
+           "List contains the element one larger than 3.");
+    assert(list.contains(2, (item, elt) => elt > item * 2) === 5,
+           "First element in list larger than 2 doubled is 5.");
 
     return true;
 }
@@ -174,21 +143,11 @@ function testListEquals(listConstructor, count = 1000) {
     let arrayList = new ArrayList().fill(count);
     let doublyLinkedList = new DoublyLinkedList().fill(count);
 
-    if ( !list.equals(arrayList) ) {
-        throw new Error("Lists with same content should be equal.");
-    }
-
-    if ( !arrayList.equals(list) ) {
-        throw new Error("Equality should be commutative.");
-    }
+    assert(list.equals(arrayList), "Lists with same content should be equal.");
+    assert(arrayList.equals(list), "Equality should be commutative.");
     
-    if ( !list.equals(doublyLinkedList) ) {
-        throw new Error("Lists with same content should be equal.");
-    }
-
-    if ( !doublyLinkedList.equals(list) ) {
-        throw new Error("Equality should be commutative.");
-    }
+    assert(list.equals(doublyLinkedList), "Lists with same content should be equal.");
+    assert(doublyLinkedList.equals(list), "Equality should be commutative.");
     
     return true;
 }
@@ -201,21 +160,13 @@ function testListEqualsPredicate(listConstructor) {
     let arrayList = new ArrayList().add(...uppers);
     let doublyLinkedList = new DoublyLinkedList().add(...uppers);
 
-    if ( list.equals(arrayList) ) {
-        throw new Error("Default test should fail.");
-    }
+    assert(!list.equals(arrayList), "Default test should fail.");
+    assert(!list.equals(doublyLinkedList), "Default test should fail.");
 
-    if ( list.equals(doublyLinkedList) ) {
-        throw new Error("Default test should fail.");
-    }
-
-    if ( !list.equals(arrayList, (c1, c2) => c1.toUpperCase() === c2.toUpperCase()) ) {
-        throw new Error("Specific test should succeed.");
-    }
-    
-    if ( !list.equals(doublyLinkedList, (c1, c2) => c1.toUpperCase() === c2.toUpperCase()) ) {
-        throw new Error("Specific test should succeed.");
-    }
+    assert(list.equals(arrayList, (c1, c2) => c1.toUpperCase() === c2.toUpperCase()),
+           "Specific test should succeed.");
+    assert(list.equals(doublyLinkedList, (c1, c2) => c1.toUpperCase() === c2.toUpperCase()),
+           "Specific test should succeed.");
     
     return true;
 }
@@ -227,9 +178,7 @@ function testListEach(listConstructor) {
     list.each(ch => {result += ch;});
     let expected = lowers.join("");
 
-    if ( result !== expected ) {
-        throw new Error(`Writing each() char should produce ${expected}: ${result}`);
-    }
+    assert(result === expected, `Writing each() char should produce ${expected}: ${result}`);
 
     return true;
 }
@@ -240,13 +189,8 @@ function testListAdd(listConstructor, count = 1000) {
     for (let i = 1; i <= count; i++) {
         list.add(i);
 
-        if ( list.size() !== i ) {
-            throw new Error(`Size of list should be ${i} not ${list.size()}`);
-        }
-
-        if ( list.get(-1) !== i ) {
-            throw new Error(`Last element of list should be ${i} not ${list.get(-1)}`);
-        }
+        assert(list.size() === i, `Size of list should be ${i} not ${list.size()}`);
+        assert(list.get(-1) === i, `Last element of list should be ${i} not ${list.get(-1)}`);
     }
 
     return true;
@@ -258,25 +202,13 @@ function testListInsert(listConstructor, fillElt = null) {
 
     list.insert(count-1, "foo");
 
-    if ( list.size() !== count ) {
-        throw new Error("Insert should extend list.");
-    }
-
-    if ( list.get(0) !== fillElt ) {
-        console.log(list.get(0));
-    console.log(fillElt);
-        throw new Error(`Empty elements should be filled with ${fillElt}`);
-    }
+    assert(list.size() === count, "Insert should extend list.");
+    assert(list.get(0) === fillElt, `Empty elements should be filled with ${fillElt}`);
 
     list.insert(0, "bar");
     
-    if ( list.size() !== count+1 ) {
-        throw new Error("Insert should increase length.");
-    }
-
-    if ( list.get(0) !== "bar" ) {
-        throw new Error("Inserted element should be 'bar'.");
-    }
+    assert(list.size() === count+1, "Insert should increase length.");
+    assert(list.get(0) === "bar", "Inserted element should be 'bar'.");
 
     return true;
 }
@@ -295,9 +227,7 @@ function testListInsertNegativeIndex(listConstructor) {
 
     let iterator = list.iterator();
     for (let i = 10; i >= 0; i--) {
-        if ( i !== iterator.current() ) {
-            throw new Error(`Inserted element should be: ${i} but found: ${iterator.current()}`);
-        }
+        assert(i === iterator.current(), `Inserted element should be: ${i} but found: ${iterator.current()}`);
         iterator.next();
     }
 
@@ -460,7 +390,7 @@ function testListSlice(listConstructor, count = 1000) {
     assert(slice.size() === n, `Slice should contain ${n} elements`);
 
     for (let i = 0; i < n; i++) {
-        assert(slice.get(i) === i+j+1, `Element ${i} should have value ${i+j+1} not ${slice.get(i)}`);
+        assert(slice.get(i) === list.get(i+j), `Element ${i} should have value ${list.get(i+j)} not ${slice.get(i)}`);
     }
 
     return true;
@@ -475,7 +405,7 @@ function testListSliceNegativeIndex(listConstructor, count = 1000) {
     assert(slice.size() === n, `Slice should contain ${n} elements`);
 
     for (let i = 0; i < n; i++) {
-        assert(slice.get(i) === i+j+1, `Element ${i} should have value ${i+j+1} not ${slice.get(i)}`);
+        assert(slice.get(i) === list.get(i+j), `Element ${i} should have value ${list.get(i+j)} not ${slice.get(i)}`);
     }
 
     return true;
@@ -495,35 +425,72 @@ function testListSliceCornerCases(listConstructor, count = 1000) {
     }
 
     {
-        let slice = list.slice(-1001, 10);
+        let slice = list.slice(-(count + 1), 10);
         assert(slice.isEmpty(), "Slice with invalid negative index should be empty");
     }
 
     return true;
 }
 
-
 function testListTime(listConstructor) {
-    let list = listConstructor();
-    console.log(list.constructor.name);
+    console.log();
+    {
+        let list = listConstructor();
+        console.log(`Timing ${list.constructor.name}`);
 
-    let start = performance.now();
-    for (let i = 0; i < 10; i++) {
-        list.fill(10000);
-        while ( !list.isEmpty() ) {
-            list.delete(0);
+        console.log("Delete from front of list.");
+        let start = performance.now();
+        for (let i = 0; i < 10; i++) {
+            list.fill(10000);
+            while ( !list.isEmpty() ) {
+                list.delete(0);
+            }
         }
+        console.log(`Elapsed time: ${performance.now() - start}`);
     }
-    console.log(`Elapsed time: ${performance.now() - start}`);
 
-    start = performance.now();
-    for (let i = 0; i < 10; i++) {
-        list.fill(10000);
-        while ( !list.isEmpty() ) {
-            list.delete(-1);
+    {
+        let list = listConstructor();
+
+        console.log("Delete from end of list.");
+        let start = performance.now();
+        for (let i = 0; i < 10; i++) {
+            list.fill(10000);
+            while ( !list.isEmpty() ) {
+                list.delete(-1);
+            }
         }
+        console.log(`Elapsed time: ${performance.now() - start}`);
     }
-    console.log(`Elapsed time: ${performance.now() - start}`);
+
+    {
+        let list = listConstructor().fill(10000);
+
+        console.log("Sequential access of list elements.");
+        let start = performance.now();
+        for (let i = 0; i < 10; i++) {
+            for (let j = 0; j < list.size(); j++) {
+                assert(list.get(j) === j + 1, `Element ${j} should be: ${j + 1}.`);
+            }
+        }
+        console.log(`Elapsed time: ${performance.now() - start}`);
+    }
+
+    {
+        let list = listConstructor().fill(10000);
+
+        console.log("Random access of list elements.");
+        let start = performance.now();
+        for (let i = 0; i < 10; i++) {
+            for (let j = 0; j < list.size(); j++) {
+                let index = Math.floor(Math.random() * list.size());
+                assert(list.get(index) === index + 1, `Element ${index} should be: ${index + 1}.`);
+            }
+        }
+        console.log(`Elapsed time: ${performance.now() - start}`);
+    }
+
+    console.log();
 
     return true;
 }

@@ -32,29 +32,35 @@ function testStackConstructor(stackConstructor) {
     assert(s.isEmpty(), "New Stack should be empty.");
     assert(s.size() === 0, "New Stack size should be 0.");
 
-    try {
-        s.peek();
-        throw new Error("Can't call peek() on empty stack.");
-    } catch (e) {
-        switch (e.message) {
-            case "Stack is empty.":
-                console.log("Got expected error: " + e);
-                break;
-            default: throw e;
-        }
-    }
+    let thrown = assertRaises(Error, () => s.peek(), "Can't call peek() on empty stack.");
+    console.log("Got expected error: " + thrown);
 
-    try {
-        s.pop();
-        throw new Error("Can't call pop() on empty stack.");
-    } catch (e) {
-        switch (e.message) {
-            case "Stack is empty.":
-                console.log("Got expected error: " + e);
-                break;
-            default: throw e;
-        }
-    }
+    // try {
+    //     s.peek();
+    //     throw new Error("Can't call peek() on empty stack.");
+    // } catch (e) {
+    //     switch (e.message) {
+    //         case "Stack is empty.":
+    //             console.log("Got expected error: " + e);
+    //             break;
+    //         default: throw e;
+    //     }
+    // }
+
+    thrown = assertRaises(Error, () => s.pop(), "Can't call pop() on empty stack.");
+    console.log("Got expected error: " + thrown);
+
+    // try {
+    //     s.pop();
+    //     throw new Error("Can't call pop() on empty stack.");
+    // } catch (e) {
+    //     switch (e.message) {
+    //         case "Stack is empty.":
+    //             console.log("Got expected error: " + e);
+    //             break;
+    //         default: throw e;
+    //     }
+    // }
 
     return true;
 }
