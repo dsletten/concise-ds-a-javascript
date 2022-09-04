@@ -25,6 +25,10 @@
 //
 //
 //    :AROUND method -> Template Method design pattern
+//
+//    Check for integer index?! insert()/delete()/get()/set()...
+//    DoublyLinkedList (for example) must initialize some fields before calling
+//        super constructor?! Dcursor needs to have `store` set first!
 //    
 //////////////////////////////////////////////////////////////////////////////
 "use strict";
@@ -670,6 +674,11 @@ Dcons.prototype.link = function(node) {
     node.setPrevious(this);
 };
 
+Dcons.prototype.unlink = function() {
+    this.setNext(null);
+    this.setPrevious(null);
+};
+
 Dcons.prototype.toString = function() {
     function printPrevious(node) {
         if ( node.getPrevious() === null ) {
@@ -740,9 +749,13 @@ function Dcursor(head, size, previous, next) {
     this.next = next;
 }
 
+//
+//    Only possible to be undefined if setupCursor() is called before `store` is initialized.
+//    See DoublyLinkedList()/DcursorList()!
+//    
 Dcursor.prototype.isInitialized = function() {
-//    return this.node !== null;
-    return this.node !== undefined;
+    return this.node !== null;
+//    return this.node !== undefined && this.node !== null;
 };
 
 Dcursor.prototype.reset = function() {
@@ -820,7 +833,7 @@ DcursorB.prototype.advance = function(step = 1) {
     } else {
         for (let i = 0; i < step; i++) {
             this.index++;
-            this.node = this.previous(node);
+            this.node = this.previous(this.node);
         }
 
         this.index = mod(this.index, this.size());
@@ -999,9 +1012,9 @@ DcursorList.prototype.deleteChildNode = function(parent) {
 //     DoublyLinkedList
 //
 function DoublyLinkedList(fillElt) {
-    DcursorList.call(this, fillElt);
-    this.store = null;
+    this.store = null; // Must initialize store before calling setupCursor()!
     this.count = 0;
+    DcursorList.call(this, fillElt);
 }
 
 DoublyLinkedList.prototype = Object.create(DcursorList.prototype);
@@ -1155,16 +1168,16 @@ DoublyLinkedList.prototype.deleteThisNode = function(doomed) {
     return result;
 };
 
-DoublyLinkedList.prototype.deleteDcons = function(doomed) {
+DoublyLinkedList.prototype.deleteDcons = function(doomed, resetStore = (node) => { return node.getNext(); }) {
     if ( doomed === doomed.getNext() ) {
-        doomed.setNext(null);
+        doomed.unlink();
         this.store = null;
 
         return doomed.getContent();
     } else {
         let result = doomed.exciseNode();
         if ( doomed === this.store ) {
-            this.store = doomed.getNext();
+            this.store = resetStore(doomed);
         }
 
         return result;
@@ -1413,6 +1426,33 @@ DoublyLinkedListRatchet.prototype.doInsertEltAfter = function(node, obj) {
     }
 };
 
+DoublyLinkedListRatchet.prototype.deleteElement = function(i) {
+    let doomed = this.deleteRatchetNode(this.nthDllNode(i));
+
+    this.count--;
+
+    return doomed;
+};
+
+DoublyLinkedListRatchet.prototype.deleteThisNode = function(doomed) {
+    let result = this.deleteRatchetNode(doomed);
+
+    this.count--;
+
+    return result;
+};
+
+DoublyLinkedListRatchet.prototype.deleteRatchetNode = function(doomed) {
+    switch ( this.direction ) {
+        case DoublyLinkedListRatchet.Direction.Forward:
+            return this.deleteDcons(doomed, (node) => { return node.getNext(); });
+        case DoublyLinkedListRatchet.Direction.Backward:
+            return this.deleteDcons(doomed, (node) => { return node.getPrevious(); });
+        default:
+            throw new Error("Invalid direction!");
+    }
+};
+
 //
 //    This is not really needed for DoublyLinkedListRatchet.
 //    
@@ -1483,10 +1523,10 @@ Dnode.prototype.setContent = function(obj) {
 //     DoublyLinkedListMap
 //
 function DoublyLinkedListMap(fillElt) {
-    DcursorList.call(this, fillElt);
     this.head = null
     this.forward = new Map();
     this.backward = new Map();
+    DcursorList.call(this, fillElt);
 }
 
 DoublyLinkedListMap.prototype = Object.create(DcursorList.prototype);
@@ -1753,23 +1793,30 @@ HashTableList.prototype.doAdd = function(objs) {
     }
 };
 
-HashTableList.prototype.doDoInsert = function(i, obj) {
-    for (let j = this.count; j > i; j--) {
-        this.store[j] = this.store[j-1];
+HashTableList.prototype.shiftUp = function(low, high) {
+    for (let i = high-1; i >= low; i--) {
+        this.store[i+1] = this.store[i];
     }
+};
 
-    this.store[i] = obj;
+HashTableList.prototype.shiftDown = function(low, high) {
+    for (let i = low; i < high; i++) {
+        this.store[i-1] = this.store[i];
+    }
+};
+
+HashTableList.prototype.doDoInsert = function(i, obj) {
+    this.shiftUp(i, this.count);
+    this.set(i, obj);
     this.count++;
 };
     
 HashTableList.prototype.doDoDelete = function(i) {
     let doomed = this.get(i);
-    for (let j = i; j < this.count; j++) {
-        this.store[j] = this.store[j+1];
-    }
+    this.shiftDown(i+1, this.count);
+    delete this.store[this.count-1];
 
-    delete this.store[--this.count];
-
+    this.count--;
     return doomed;
 };
 
@@ -1796,6 +1843,245 @@ HashTableList.prototype.subseq = function(start, end) {
     return [...Array(end-start)].map((_, i)  => this.get(i+start));
 };
         
+//
+//     HashTableListX
+//     
+function HashTableListX(fillElt) {
+    HashTableList.call(this, fillElt);
+    this.offset = 0;
+}
+
+HashTableListX.prototype = Object.create(HashTableList.prototype);
+HashTableListX.prototype.constructor = HashTableListX;
+Object.defineProperty(HashTableListX.prototype, "constructor", {enumerable: false, configurable: false});
+
+HashTableListX.prototype.makeEmptyList = function() {
+    return new HashTableListX(this.fillElt);
+};
+
+HashTableListX.prototype.doClear = function() {
+    this.store = {};
+    this.count = 0;
+    this.offset = 0;
+};
+
+HashTableListX.prototype.doAdd = function(objs) {
+    let i = this.count + this.offset;
+    for (let obj of objs) {
+        this.store[i++] = obj;
+        this.count++;
+    }
+};
+
+HashTableListX.prototype.shiftUp = function(low, high) {
+    HashTableList.prototype.shiftUp.call(this, low + this.offset, high + this.offset);
+};
+
+HashTableListX.prototype.shiftDown = function(low, high) {
+    HashTableList.prototype.shiftDown.call(this, low + this.offset, high + this.offset);
+};
+
+HashTableListX.prototype.doDoInsert = function(i, obj) {
+    if ( i > Math.floor(this.count / 2) ) {
+        this.shiftUp(i, this.count);
+    } else {
+        if ( i !== 0 ) {
+            this.shiftDown(0, i);
+        }
+
+        this.offset--;
+    }
+
+    this.set(i, obj);
+    this.count++;
+};
+    
+HashTableListX.prototype.doDoDelete = function(i) {
+    let doomed = this.get(i);
+
+    if ( i > Math.floor(this.count / 2) ) {
+        this.shiftDown(i + 1, this.count);
+
+        delete this.store[this.count - 1 + this.offset];
+    } else {
+        if ( i !== 0 ) {
+            this.shiftUp(0, i);
+        }
+
+        delete this.store[this.offset++];
+    }
+
+    this.count--;
+    return doomed;
+};
+
+HashTableListX.prototype.doGet = function(i) {
+    return this.store[i + this.offset];
+};
+
+HashTableListX.prototype.doSet = function(i, obj) {
+    this.store[i + this.offset] = obj;
+};
+        
+//
+//     MapList
+//     
+function MapList(fillElt) {
+    MutableList.call(this, fillElt);
+    this.store = new Map();
+}
+
+MapList.prototype = Object.create(MutableList.prototype);
+MapList.prototype.constructor = MapList;
+Object.defineProperty(MapList.prototype, "constructor", {enumerable: false, configurable: false});
+
+MapList.prototype.makeEmptyList = function() {
+    return new MapList(this.fillElt);
+};
+
+MapList.prototype.size = function() {
+    return this.store.size;
+};
+
+MapList.prototype.isEmpty = function() {
+    return this.size() === 0;
+};
+
+MapList.prototype.iterator = function() {
+    let list = this;  // Still necessary???
+    return new MutableCollectionIterator(Cursor.makeRandomAccessListCursor(list),
+                                         () => list.modificationCount)
+};
+
+MapList.prototype.listIterator = function(start = 0) {
+    let list = this;
+
+    return new RandomAccessListListIterator(this, () => list.modificationCount, start);
+};
+
+MapList.prototype.doClear = function() {
+    this.store.clear();
+};
+
+MapList.prototype.doAdd = function(objs) {
+    for (let obj of objs) {
+        this.store.set(this.size(), obj);
+    }
+};
+
+MapList.prototype.shiftUp = function(low, high) {
+    for (let i = high-1; i >= low; i--) {
+        this.store.set(i+1, this.store.get(i));
+    }
+};
+
+MapList.prototype.shiftDown = function(low, high) {
+    for (let i = low; i < high; i++) {
+        this.store.set(i-1, this.store.get(i));
+    }
+};
+
+MapList.prototype.doDoInsert = function(i, obj) {
+    this.shiftUp(i, this.size());
+    this.set(i, obj);
+};
+    
+MapList.prototype.doDoDelete = function(i) {
+    let doomed = this.get(i);
+    this.shiftDown(i+1, this.size());
+    this.store.delete(this.size() - 1);
+
+    return doomed;
+};
+
+MapList.prototype.doGet = function(i) {
+    return this.store.get(i);
+};
+
+MapList.prototype.doSet = function(i, obj) {
+    this.store.set(i, obj);
+};
+
+MapList.prototype.subseq = function(start, end) {
+    return [...Array(end-start)].map((_, i)  => this.get(i+start));
+};
+        
+//
+//     MapListX
+//     
+function MapListX(fillElt) {
+    MapList.call(this, fillElt);
+    this.offset = 0;
+}
+
+MapListX.prototype = Object.create(MapList.prototype);
+MapListX.prototype.constructor = MapListX;
+Object.defineProperty(MapListX.prototype, "constructor", {enumerable: false, configurable: false});
+
+MapListX.prototype.makeEmptyList = function() {
+    return new MapListX(this.fillElt);
+};
+
+MapListX.prototype.doClear = function() {
+//    MapList.prototype.clear.call(this);
+    MapList.prototype.doClear.call(this);
+    this.offset = 0;
+};
+
+MapListX.prototype.doAdd = function(objs) {
+    for (let obj of objs) {
+        this.store.set(this.size() + this.offset, obj);
+    }
+};
+
+MapListX.prototype.shiftUp = function(low, high) {
+    MapList.prototype.shiftUp.call(this, low + this.offset, high + this.offset);
+};
+
+MapListX.prototype.shiftDown = function(low, high) {
+    MapList.prototype.shiftDown.call(this, low + this.offset, high + this.offset);
+};
+
+MapListX.prototype.doDoInsert = function(i, obj) {
+    if ( i > Math.floor(this.size() / 2) ) {
+        this.shiftUp(i, this.size());
+    } else {
+        if ( i !== 0 ) {
+            this.shiftDown(0, i);
+        }
+
+        this.offset--;
+    }
+
+    this.set(i, obj);
+};
+    
+MapListX.prototype.doDoDelete = function(i) {
+    let doomed = this.get(i);
+
+    if ( i > Math.floor(this.size() / 2) ) {
+        this.shiftDown(i + 1, this.size());
+
+        this.store.delete(this.size() - 1 + this.offset);
+    } else {
+        if ( i !== 0 ) {
+            this.shiftUp(0, i);
+        }
+
+        this.store.delete(this.offset++);
+    }
+
+    return doomed;
+};
+
+MapListX.prototype.doGet = function(i) {
+    return this.store.get(i + this.offset);
+};
+
+MapListX.prototype.doSet = function(i, obj) {
+    this.store.set(i + this.offset, obj);
+};
+
 //
 //     PersistentList
 //

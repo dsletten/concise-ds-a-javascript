@@ -98,6 +98,7 @@ function testListClear(listConstructor, count = 1000) {
 
     list.clear();
     assert(list.isEmpty(), "List should be empty.");
+    assert(list.size() === 0, "Size of empty list should be zero.");
 
     return true;
 }
@@ -130,6 +131,7 @@ function testListContainsArithmetic(listConstructor) {
     let list = listConstructor().fill(20);
 
     assert(list.contains(3) === 3, "Literal 3 should be present in list.");
+//    (assert (eql (contains list 3d0 :test #'=) 3) () "Float equal to 3 should be present in list.")
     assert(list.contains(3, (item, elt) => elt === item + 1) === 4,
            "List contains the element one larger than 3.");
     assert(list.contains(2, (item, elt) => elt > item * 2) === 5,
@@ -199,16 +201,17 @@ function testListAdd(listConstructor, count = 1000) {
 function testListInsert(listConstructor, fillElt = null) {
     let list = listConstructor(fillElt);
     let count = 6;
+    let elt = "bar";
 
     list.insert(count-1, "foo");
 
     assert(list.size() === count, "Insert should extend list.");
     assert(list.get(0) === fillElt, `Empty elements should be filled with ${fillElt}`);
 
-    list.insert(0, "bar");
+    list.insert(0, elt);
     
     assert(list.size() === count+1, "Insert should increase length.");
-    assert(list.get(0) === "bar", "Inserted element should be 'bar'.");
+    assert(list.get(0) === elt, `Inserted element should be '${elt}'.`);
 
     return true;
 }
@@ -218,8 +221,7 @@ function testListInsertFillZero(listConstructor) {
 }
 
 function testListInsertNegativeIndex(listConstructor) {
-    let list = listConstructor();
-    list.add(0);
+    let list = listConstructor().add(0);
 
     for (let i = 1; i <= 10; i++) {
         list.insert(-i, i);
@@ -235,18 +237,55 @@ function testListInsertNegativeIndex(listConstructor) {
 }
 
 function testListInsertEnd(listConstructor) {
-    let list = listConstructor();
-    list.add(0, 1, 2);
-    list.insert(3, 3);
+    let list = listConstructor().add(0, 1, 2);
+    let x = 3;
+    let y = 10;
 
-    assert(list.get(3) === 3, "Element at index 3 should be 3");
-    assert(list.size() === 4, `Size of list should be 4 not ${list.size()}.`);
+    list.insert(x, x);
 
-    list.insert(5, 5);
+    assert(list.get(x) === x, `Element at index ${x} should be ${x}`);
+    assert(list.size() === x+1, `Size of list should be ${x+1} not ${list.size()}.`);
+
+    list.insert(y, y);
     
-    assert(list.get(5) === 5, "Element at index 5 should be 5");
-    assert(list.size() === 6, `Size of list should be 6 not ${list.size()}.`);
+    assert(list.get(y) === y, `Element at index ${y} should be ${y}`);
+    assert(list.size() === y+1, `Size of list should be ${y+1} not ${list.size()}.`);
     
+    return true;
+}
+
+function testListInsertOffset(listConstructor, count = 1000) {
+    let lowIndex = 1;
+    let highIndex = 3/4 * count;
+    let elt = 88;
+    
+    {
+        let list = listConstructor().fill(count);
+        list.delete(0);
+        assert(list.get(0) === 2, `First element should be 2 not ${list.get(0)}.`);
+        
+        list.insert(0, elt);
+        assert(list.get(0) === elt, `First element should be ${elt} not ${list.get(0)}.`);
+    }
+
+    {
+        let list = listConstructor().fill(count);
+        list.delete(0);
+        
+        list.insert(lowIndex, elt);
+        assert(list.get(0) === 2, `First element should be 2 not ${list.get(0)}.`);
+        assert(list.get(lowIndex) === elt, `Element ${lowIndex} element should be ${elt} not ${list.get(lowIndex)}.`);
+    }
+
+    {
+        let list = listConstructor().fill(count);
+        list.delete(0);
+        
+        list.insert(highIndex, elt);
+        assert(list.get(0) === 2, `First element should be 2 not ${list.get(0)}.`);
+        assert(list.get(highIndex) === elt, `Element ${highIndex} should be ${elt} not ${list.get(highIndex)}.`);
+    }
+
     return true;
 }
         
@@ -254,9 +293,11 @@ function testListDelete(listConstructor, count = 1000) {
     {
         let list = listConstructor().fill(count);
 
-        for (let i = count; i >= 1; i--) {
-            assert(list.size() === i, "List size should reflect deletions");
-            list.delete(0);
+        for (let i = count, j = 1; i >= 1; i--, j++) {
+            let size = list.size();
+            let doomed = list.delete(0);
+            assert(size === i, "List size should reflect deletions");
+            assert(doomed === j, `Incorrect deleted value returned: ${doomed} rather than ${j}`);
         }
 
         assert(list.isEmpty(), "Empty list should be empty.");
@@ -284,6 +325,25 @@ function testListDeleteNegativeIndex(listConstructor, count = 1000) {
     }
     
     assert(list.isEmpty(), "Empty list should be empty.");
+
+    return true;
+}
+
+function testListDeleteOffset(listConstructor, count = 1000) {
+    let lowIndex = 1;
+    let highIndex = 3/4 * count;
+    let list = listConstructor().fill(count);
+
+    list.delete(0);
+    assert(list.get(0) === 2, `First element should be 2 not ${list.get(0)}.`);
+
+    list.delete(lowIndex);
+    assert(list.get(0) === 2, `First element should be 2 not ${list.get(0)}.`);
+    assert(list.get(lowIndex) === lowIndex + 3, `Element ${lowIndex} should be ${lowIndex + 3} not ${list.get(lowIndex)}.`);
+
+    list.delete(highIndex);
+    assert(list.get(0) === 2, `First element should be 2 not ${list.get(0)}.`);
+    assert(list.get(highIndex) === highIndex + 4, `Element ${highIndex} should be ${highIndex + 4} not ${list.get(highIndex)}.`);
 
     return true;
 }
@@ -341,9 +401,13 @@ function testListSetNegativeIndex(listConstructor, count = 1000) {
 function testListSetOutOfBounds(listConstructor) {
     let list = listConstructor();
     let index = 10;
-    list.set(index, "foo");
+    let elt = "foo";
 
+    list.set(index, elt);
+
+    assert(list.get(0) === list.fillElt, `Empty elements should be filled with ${list.fillElt}`);
     assert(list.size() === index + 1, "List should expand to accommodate out-of-bounds index.");
+    assert(list.get(index) === elt, `Element ${index} should be: ${elt}.`);
 
     return true;
 }
@@ -438,6 +502,34 @@ function testListTime(listConstructor) {
         let list = listConstructor();
         console.log(`Timing ${list.constructor.name}`);
 
+        console.log("Add to front of list.");
+        let start = performance.now();
+        for (let i = 0; i < 10; i++) {
+            for (let j = 0; j < 10000; j++) {
+                list.insert(0, j);
+            }
+            list.clear();
+        }
+        console.log(`Elapsed time: ${performance.now() - start}`);
+    }
+
+    {
+        let list = listConstructor();
+
+        console.log("Add to end of list.");
+        let start = performance.now();
+        for (let i = 0; i < 10; i++) {
+            for (let j = 0; j < 10000; j++) {
+                list.add(j);
+            }
+            list.clear();
+        }
+        console.log(`Elapsed time: ${performance.now() - start}`);
+    }
+
+    {
+        let list = listConstructor();
+
         console.log("Delete from front of list.");
         let start = performance.now();
         for (let i = 0; i < 10; i++) {
@@ -458,6 +550,42 @@ function testListTime(listConstructor) {
             list.fill(10000);
             while ( !list.isEmpty() ) {
                 list.delete(-1);
+            }
+        }
+        console.log(`Elapsed time: ${performance.now() - start}`);
+    }
+
+    {
+        let list = listConstructor();
+
+        console.log("Insert at random index.");
+        let start = performance.now();
+        for (let i = 0; i < 10; i++) {
+            list.add(null);
+            for (let j = 0; j < 10000; j++) {
+                list.insert(Math.floor(Math.random() * list.size()), j);
+            }
+            list.clear();
+        }
+        console.log(`Elapsed time: ${performance.now() - start}`);
+    }
+
+    {
+        let list = listConstructor();
+
+        console.log("Delete from random index.");
+        let start = performance.now();
+        for (let i = 0; i < 10; i++) {
+            list.fill(10000);
+            for (let j = 0; j < 10000; j++) {
+                try {
+                    var index = Math.floor(Math.random() * list.size());
+                    list.delete(index);
+                } catch (e) {
+                    console.log(index);
+                    console.log(`i: ${i} j: ${j} ${e}`);
+                    return false;
+                }
             }
         }
         console.log(`Elapsed time: ${performance.now() - start}`);
@@ -511,7 +639,9 @@ function testArrayList() {
         testListInsertFillZero(fillElt => new ArrayList(fillElt)) &&
         testListInsertNegativeIndex(() => new ArrayList()) &&
         testListInsertEnd(() => new ArrayList()) &&
+        testListInsertOffset(() => new ArrayList()) &&
         testListDelete(() => new ArrayList()) &&
+        testListDeleteOffset(() => new ArrayList()) &&
         testListDeleteNegativeIndex(() => new ArrayList()) &&
         testListGet(() => new ArrayList()) &&
         testListGetNegativeIndex(() => new ArrayList()) &&
@@ -543,7 +673,9 @@ function testSinglyLinkedList() {
         testListInsertFillZero(fillElt => new SinglyLinkedList(fillElt)) &&
         testListInsertNegativeIndex(() => new SinglyLinkedList()) &&
         testListInsertEnd(() => new SinglyLinkedList()) &&
+        testListInsertOffset(() => new SinglyLinkedList()) &&
         testListDelete(() => new SinglyLinkedList()) &&
+        testListDeleteOffset(() => new SinglyLinkedList()) &&
         testListDeleteNegativeIndex(() => new SinglyLinkedList()) &&
         testListGet(() => new SinglyLinkedList()) &&
         testListGetNegativeIndex(() => new SinglyLinkedList()) &&
@@ -575,7 +707,9 @@ function testDoublyLinkedList() {
         testListInsertFillZero(fillElt => new DoublyLinkedList(fillElt)) &&
         testListInsertNegativeIndex(() => new DoublyLinkedList()) &&
         testListInsertEnd(() => new DoublyLinkedList()) &&
+        testListInsertOffset(() => new DoublyLinkedList()) &&
         testListDelete(() => new DoublyLinkedList()) &&
+        testListDeleteOffset(() => new DoublyLinkedList()) &&
         testListDeleteNegativeIndex(() => new DoublyLinkedList()) &&
         testListGet(() => new DoublyLinkedList()) &&
         testListGetNegativeIndex(() => new DoublyLinkedList()) &&
@@ -607,7 +741,9 @@ function testDoublyLinkedListRatchet() {
         testListInsertFillZero(fillElt => new DoublyLinkedListRatchet(fillElt)) &&
         testListInsertNegativeIndex(() => new DoublyLinkedListRatchet()) &&
         testListInsertEnd(() => new DoublyLinkedListRatchet()) &&
+        testListInsertOffset(() => new DoublyLinkedListRatchet()) &&
         testListDelete(() => new DoublyLinkedListRatchet()) &&
+        testListDeleteOffset(() => new DoublyLinkedListRatchet()) &&
         testListDeleteNegativeIndex(() => new DoublyLinkedListRatchet()) &&
         testListGet(() => new DoublyLinkedListRatchet()) &&
         testListGetNegativeIndex(() => new DoublyLinkedListRatchet()) &&
@@ -639,7 +775,9 @@ function testDoublyLinkedListMap() {
         testListInsertFillZero(fillElt => new DoublyLinkedListMap(fillElt)) &&
         testListInsertNegativeIndex(() => new DoublyLinkedListMap()) &&
         testListInsertEnd(() => new DoublyLinkedListMap()) &&
+        testListInsertOffset(() => new DoublyLinkedListMap()) &&
         testListDelete(() => new DoublyLinkedListMap()) &&
+        testListDeleteOffset(() => new DoublyLinkedListMap()) &&
         testListDeleteNegativeIndex(() => new DoublyLinkedListMap()) &&
         testListGet(() => new DoublyLinkedListMap()) &&
         testListGetNegativeIndex(() => new DoublyLinkedListMap()) &&
@@ -671,7 +809,9 @@ function testHashTableList() {
         testListInsertFillZero(fillElt => new HashTableList(fillElt)) &&
         testListInsertNegativeIndex(() => new HashTableList()) &&
         testListInsertEnd(() => new HashTableList()) &&
+        testListInsertOffset(() => new HashTableList()) &&
         testListDelete(() => new HashTableList()) &&
+        testListDeleteOffset(() => new HashTableList()) &&
         testListDeleteNegativeIndex(() => new HashTableList()) &&
         testListGet(() => new HashTableList()) &&
         testListGetNegativeIndex(() => new HashTableList()) &&
@@ -687,13 +827,118 @@ function testHashTableList() {
         testListTime(() => new HashTableList());
 }
 
+function testHashTableListX() {
+    return testListConstructor(() => new HashTableListX()) &&
+        testListIsEmpty(() => new HashTableListX()) &&
+        testListSize(() => new HashTableListX()) &&
+        testListClear(() => new HashTableListX()) &&
+        testListContains(() => new HashTableListX()) &&
+        testListContainsPredicate(() => new HashTableListX()) &&
+        testListContainsArithmetic(() => new HashTableListX()) &&
+        testListEquals(() => new HashTableListX()) &&
+        testListEqualsPredicate(() => new HashTableListX()) &&
+        testListEach(() => new HashTableListX()) &&
+        testListAdd(() => new HashTableListX()) &&
+        testListInsert(fillElt => new HashTableListX(fillElt)) &&
+        testListInsertFillZero(fillElt => new HashTableListX(fillElt)) &&
+        testListInsertNegativeIndex(() => new HashTableListX()) &&
+        testListInsertEnd(() => new HashTableListX()) &&
+        testListInsertOffset(() => new HashTableListX()) &&
+        testListDelete(() => new HashTableListX()) &&
+        testListDeleteOffset(() => new HashTableListX()) &&
+        testListDeleteNegativeIndex(() => new HashTableListX()) &&
+        testListGet(() => new HashTableListX()) &&
+        testListGetNegativeIndex(() => new HashTableListX()) &&
+        testListSet(() => new HashTableListX()) &&
+        testListSetNegativeIndex(() => new HashTableListX()) &&
+        testListSetOutOfBounds(() => new HashTableListX()) &&
+        testListIndex(() => new HashTableListX()) &&
+        testListIndexPredicate(() => new HashTableListX()) &&
+        testListIndexArithmetic(() => new HashTableListX()) &&
+        testListSlice(() => new HashTableListX()) &&
+        testListSliceNegativeIndex(() => new HashTableListX()) &&
+        testListSliceCornerCases(() => new HashTableListX()) &&
+        testListTime(() => new HashTableListX());
+}
+
+function testMapList() {
+    return testListConstructor(() => new MapList()) &&
+        testListIsEmpty(() => new MapList()) &&
+        testListSize(() => new MapList()) &&
+        testListClear(() => new MapList()) &&
+        testListContains(() => new MapList()) &&
+        testListContainsPredicate(() => new MapList()) &&
+        testListContainsArithmetic(() => new MapList()) &&
+        testListEquals(() => new MapList()) &&
+        testListEqualsPredicate(() => new MapList()) &&
+        testListEach(() => new MapList()) &&
+        testListAdd(() => new MapList()) &&
+        testListInsert(fillElt => new MapList(fillElt)) &&
+        testListInsertFillZero(fillElt => new MapList(fillElt)) &&
+        testListInsertNegativeIndex(() => new MapList()) &&
+        testListInsertEnd(() => new MapList()) &&
+        testListInsertOffset(() => new MapList()) &&
+        testListDelete(() => new MapList()) &&
+        testListDeleteOffset(() => new MapList()) &&
+        testListDeleteNegativeIndex(() => new MapList()) &&
+        testListGet(() => new MapList()) &&
+        testListGetNegativeIndex(() => new MapList()) &&
+        testListSet(() => new MapList()) &&
+        testListSetNegativeIndex(() => new MapList()) &&
+        testListSetOutOfBounds(() => new MapList()) &&
+        testListIndex(() => new MapList()) &&
+        testListIndexPredicate(() => new MapList()) &&
+        testListIndexArithmetic(() => new MapList()) &&
+        testListSlice(() => new MapList()) &&
+        testListSliceNegativeIndex(() => new MapList()) &&
+        testListSliceCornerCases(() => new MapList()) &&
+        testListTime(() => new MapList());
+}
+
+function testMapListX() {
+    return testListConstructor(() => new MapListX()) &&
+        testListIsEmpty(() => new MapListX()) &&
+        testListSize(() => new MapListX()) &&
+        testListClear(() => new MapListX()) &&
+        testListContains(() => new MapListX()) &&
+        testListContainsPredicate(() => new MapListX()) &&
+        testListContainsArithmetic(() => new MapListX()) &&
+        testListEquals(() => new MapListX()) &&
+        testListEqualsPredicate(() => new MapListX()) &&
+        testListEach(() => new MapListX()) &&
+        testListAdd(() => new MapListX()) &&
+        testListInsert(fillElt => new MapListX(fillElt)) &&
+        testListInsertFillZero(fillElt => new MapListX(fillElt)) &&
+        testListInsertNegativeIndex(() => new MapListX()) &&
+        testListInsertEnd(() => new MapListX()) &&
+        testListInsertOffset(() => new MapListX()) &&
+        testListDelete(() => new MapListX()) &&
+        testListDeleteOffset(() => new MapListX()) &&
+        testListDeleteNegativeIndex(() => new MapListX()) &&
+        testListGet(() => new MapListX()) &&
+        testListGetNegativeIndex(() => new MapListX()) &&
+        testListSet(() => new MapListX()) &&
+        testListSetNegativeIndex(() => new MapListX()) &&
+        testListSetOutOfBounds(() => new MapListX()) &&
+        testListIndex(() => new MapListX()) &&
+        testListIndexPredicate(() => new MapListX()) &&
+        testListIndexArithmetic(() => new MapListX()) &&
+        testListSlice(() => new MapListX()) &&
+        testListSliceNegativeIndex(() => new MapListX()) &&
+        testListSliceCornerCases(() => new MapListX()) &&
+        testListTime(() => new MapListX());
+}
+
 function testListAll() {
     return testArrayList() &&
         testSinglyLinkedList() &&
         testDoublyLinkedList() &&
         testDoublyLinkedListRatchet() &&
         testDoublyLinkedListMap() &&
-        testHashTableList();
+        testHashTableList() &&
+        testHashTableListX() &&
+        testMapList() &&
+        testMapListX();
 }
 
 // var al = new ArrayList()
