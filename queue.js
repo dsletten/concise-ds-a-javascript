@@ -37,9 +37,9 @@ Object.defineProperty(Queue.prototype, "constructor", {enumerable: false, config
 //
 //    Not appropriate for PersistentQueue!
 //    
-Queue.prototype.fill = function(count = 1000) {
-    for (var i = 1; i <= count; i++) {
-        this.enqueue(i);
+Queue.prototype.fill = function({count = 1000, generator = x => x} = {}) {
+    for (let i = 1; i <= count; i++) {
+        this.enqueue(generator(i));
     }
 
     return this;
@@ -379,10 +379,10 @@ PersistentQueue.initializeQueue = function(head, tail, count) {
     return newQueue;
 };
 
-PersistentQueue.prototype.fill = function(count = 1000) {
+PersistentQueue.prototype.fill = function({count = 1000, generator = x => x} = {}) {
     let newQueue = this;
-    for (var i = 1; i <= count; i++) {
-        newQueue = newQueue.enqueue(i);
+    for (let i = 1; i <= count; i++) {
+        newQueue = newQueue.enqueue(generator(i));
     }
 
     return newQueue;
@@ -441,10 +441,10 @@ PersistentListQueue.initializeQueue = function(list) {
     return newQueue;
 };
 
-PersistentListQueue.prototype.fill = function(count = 1000) {
+PersistentListQueue.prototype.fill = function({count = 1000, generator = x => x} = {}) {
     let newQueue = this;
-    for (var i = 1; i <= count; i++) {
-        newQueue = newQueue.enqueue(i);
+    for (let i = 1; i <= count; i++) {
+        newQueue = newQueue.enqueue(generator(i));
     }
 
     return newQueue;
@@ -734,10 +734,10 @@ PersistentDeque.initializeDeque = function(head, tail, count) {
     return newDeque;
 };
 
-PersistentDeque.prototype.fill = function(count = 1000) {
+PersistentDeque.prototype.fill = function({count = 1000, generator = x => x} = {}) {
     let newDeque = this;
-    for (var i = 1; i <= count; i++) {
-        newDeque = newDeque.enqueue(i);
+    for (let i = 1; i <= count; i++) {
+        newDeque = newDeque.enqueue(generator(i));
     }
 
     return newDeque;
@@ -823,10 +823,10 @@ PersistentListDeque.initializeDeque = function(list) {
 //
 //     Same as PersistentDeque?!
 //     
-PersistentListDeque.prototype.fill = function(count = 1000) {
+PersistentListDeque.prototype.fill = function({count = 1000, generator = x => x} = {}) {
     let newDeque = this;
-    for (var i = 1; i <= count; i++) {
-        newDeque = newDeque.enqueue(i);
+    for (let i = 1; i <= count; i++) {
+        newDeque = newDeque.enqueue(generator(i));
     }
 
     return newDeque;

@@ -32,29 +32,35 @@ function testPersistentStackConstructor(stackConstructor) {
     assert(s.isEmpty(), "New Stack should be empty.");
     assert(s.size() === 0, "New Stack size should be 0.");
 
-    try {
-        s.peek();
-        throw new Error("Can't call peek() on empty stack.");
-    } catch (e) {
-        switch (e.message) {
-            case "Stack is empty.":
-                console.log("Got expected error: " + e);
-                break;
-            default: throw e;
-        }
-    }
+    let thrown = assertRaises(Error, () => s.peek(), "Can't call peek() on empty stack.");
+    console.log("Got expected error: " + thrown);
 
-    try {
-        s.pop();
-        throw new Error("Can't call pop() on empty stack.");
-    } catch (e) {
-        switch (e.message) {
-            case "Stack is empty.":
-                console.log("Got expected error: " + e);
-                break;
-            default: throw e;
-        }
-    }
+    // try {
+    //     s.peek();
+    //     throw new Error("Can't call peek() on empty stack.");
+    // } catch (e) {
+    //     switch (e.message) {
+    //         case "Stack is empty.":
+    //             console.log("Got expected error: " + e);
+    //             break;
+    //         default: throw e;
+    //     }
+    // }
+
+    thrown = assertRaises(Error, () => s.pop(), "Can't call pop() on empty stack.");
+    console.log("Got expected error: " + thrown);
+
+    // try {
+    //     s.pop();
+    //     throw new Error("Can't call pop() on empty stack.");
+    // } catch (e) {
+    //     switch (e.message) {
+    //         case "Stack is empty.":
+    //             console.log("Got expected error: " + e);
+    //             break;
+    //         default: throw e;
+    //     }
+    // }
 
     return true;
 }
@@ -63,8 +69,12 @@ function testPersistentStackIsEmpty(stackConstructor) {
     let s = stackConstructor();
 
     assert(s.isEmpty(), "New stack should be empty.");
-    assert(!s.push(-1).isEmpty(), "Stack with elt should not be empty.");
-    assert(s.push(-1).pop().isEmpty(), "Empty stack should be empty.");
+    
+    s = s.push(-1);
+    assert(!s.isEmpty(), "Stack with elt should not be empty.");
+
+    s = s.pop()
+    assert(s.isEmpty(), "Empty stack should be empty.");
 
     return true;
 }
@@ -79,6 +89,13 @@ function testPersistentStackSize(stackConstructor, count = 1000) {
         assertStackSize(s, i);
     }
 
+    for (let i = count-1; i >= 0; i--) {
+        s = s.pop();
+        assertStackSize(s, i);
+    }
+
+    assert(s.isEmpty(), "Stack should be empty.");
+
     return true;
 }
 
@@ -88,36 +105,30 @@ function testPersistentStackSize(stackConstructor, count = 1000) {
 // }
 
 function testPersistentStackClear(stackConstructor, count = 1000) {
-    let s = stackConstructor().fill(count);
+    let s = stackConstructor().fill({count: count});
 
     assert(!s.isEmpty(), `Stack should have ${count} elements.`);
-    assert(s.clear().isEmpty(), "Stack should be empty.");
-    assertStackSize(s.clear(), 0);
+
+    s = s.clear()
+    assert(s.isEmpty(), "Stack should be empty.");
+    assertStackSize(s, 0);
 
     return true;
 }
 
-//
-//     Can't test pop() and peek() independently??
-//     
-// function testPersistentStackPop(stackConstructor, count = 1000) {
-//     function testRecursive(s, n) {
-//         if ( s.isEmpty() ) {
-//             return true;
-//         } else if ( s.pop() === n ) {
-//             return testRecursive(s, n-1);
-//         } else {
-//             throw new Error("Wrong value on stack: " + s.peek() + " should be: " + n);
-//         }
-//     }
+function testPersistentStackPush(stackConstructor, count = 1000) {
+    let s = stackConstructor();
 
-//     let s = stackConstructor().fill(count);
-//     testRecursive(s, s.size());
+    for (let i = 1; i <= count; i++) {
+        s = s.push(i);
+        assert(s.peek() === i, `Wrong value pushed: ${s.peek()} should be: ${i}`);
+    }
 
-//     return true;
-// }
+    return true;
+}
 
-function testPersistentStackPeek(stackConstructor, count = 1000) {
+
+function testPersistentStackPeekPop(stackConstructor, count = 1000) {
     function testRecursive(s, i) {
         if ( s.isEmpty() ) {
             return i === 0;
@@ -129,18 +140,17 @@ function testPersistentStackPeek(stackConstructor, count = 1000) {
         }
     }
 
-    let s = stackConstructor().fill(count);
+    let s = stackConstructor().fill({count: count});
     return testRecursive(s, s.size());
 }
 
 function testPersistentStackTime(stackConstructor, count = 100000) {
-    let s = stackConstructor();
     let start = performance.now();
 
     for (let i = 0; i < 10; i++) {
-        let newStack = s.fill(count);
-        while ( !newStack.isEmpty() ) {
-            newStack = newStack.pop();
+        let s = stackConstructor().fill({count: count});
+        while ( !s.isEmpty() ) {
+            s = s.pop();
         }
     }
 
@@ -149,19 +159,24 @@ function testPersistentStackTime(stackConstructor, count = 100000) {
     return true;
 }
 
-function runAllPersistentStackTests(stackConstructor) {
-    console.log("Testing: " + stackConstructor().constructor.name); // ??????
-    return testPersistentStackConstructor(stackConstructor) &&
-        testPersistentStackIsEmpty(stackConstructor) &&
-        testPersistentStackSize(stackConstructor) &&
-        testPersistentStackClear(stackConstructor) &&
-        // testPersistentStackPop(stackConstructor) &&
-        testPersistentStackPeek(stackConstructor) &&
-        testPersistentStackTime(stackConstructor);
+function persistentStackTestSuite(stackConstructor) {
+    console.log(`Testing ${stackConstructor().constructor.name}`);
+
+    let tests = [testPersistentStackConstructor,
+                 testPersistentStackIsEmpty,
+                 testPersistentStackSize,
+                 testPersistentStackClear,
+                 testPersistentStackPush,
+                 testPersistentStackPeekPop,
+                 testPersistentStackTime];
+
+    assert(!tests.some(test => { console.log(test); return test(stackConstructor) === false; }));
+
+    return true;
 }
 
 function testPersistentStackAll() {
     let constructors = [() => new PersistentStack(),
                         () => new PersistentListStack()];
-    return constructors.every(constructor => runAllPersistentStackTests(constructor));
+    return constructors.every(constructor => persistentStackTestSuite(constructor));
 }

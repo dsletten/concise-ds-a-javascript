@@ -161,7 +161,7 @@ function testDequeSize(dequeConstructor, count = 1000) {
 }
 
 function testQueueClear(queueConstructor, count = 1000) {
-    let q = queueConstructor().fill(count);
+    let q = queueConstructor().fill({count: count});
 
     assert(!q.isEmpty(), `Queue should have ${count} elements.`);
 
@@ -170,14 +170,14 @@ function testQueueClear(queueConstructor, count = 1000) {
     assert(q.isEmpty(), "Queue should be empty.");
     assertQueueSize(q, 0);
 
-    q.fill(count);
+    q.fill({count: count});
     assert(!q.isEmpty(), "Emptying queue should not break it.");
 
     return true;
 }
 
 function testQueueDequeue(queueConstructor, count = 1000) {
-    let q = queueConstructor().fill(count);
+    let q = queueConstructor().fill({count: count});
 
     for (let i = 1; i <= count; i++) {
         let dequeued = q.dequeue();
@@ -191,7 +191,7 @@ function testQueueDequeue(queueConstructor, count = 1000) {
 }
 
 function testQueueFront(queueConstructor, count = 1000) {
-    let q = queueConstructor().fill(count);
+    let q = queueConstructor().fill({count: count});
 
     for (let i = 1; i <= count; i++) {
         let front = q.front();
@@ -206,7 +206,7 @@ function testQueueFront(queueConstructor, count = 1000) {
 }
 
 function testDequeDequeueRear(dequeConstructor, count = 1000) {
-    let dq = dequeConstructor().fill(count);
+    let dq = dequeConstructor().fill({count: count});
 
     for (let i = count; i >= 1; i--) {
         let dequeued = dq.dequeueRear();
@@ -220,7 +220,7 @@ function testDequeDequeueRear(dequeConstructor, count = 1000) {
 }
 
 function testDequeRear(dequeConstructor, count = 1000) {
-    let dq = dequeConstructor().fill(count);
+    let dq = dequeConstructor().fill({count: count});
 
     for (let i = count; i >= 1; i--) {
         let rear = dq.rear();
@@ -239,7 +239,7 @@ function testQueueTime(queueConstructor, count = 100000) {
     let start = performance.now();
 
     for (let i = 0; i < 10; i++) {
-        q.fill(count);
+        q.fill({count: count});
         emptyQueue(q);
     }
 
@@ -276,25 +276,25 @@ function testDequeTime(dequeConstructor, count = 100000) {
 function testQueueWave(queueConstructor) {
     let q = queueConstructor();
 
-    q.fill(5000);
+    q.fill({count: 5000});
     assertQueueSize(q, 5000);
 
     emptyQueue(q, 3000);
     assertQueueSize(q, 2000);
 
-    q.fill(5000);
+    q.fill({count: 5000});
     assertQueueSize(q, 7000);
 
     emptyQueue(q, 3000);
     assertQueueSize(q, 4000);
 
-    q.fill(5000);
+    q.fill({count: 5000});
     assertQueueSize(q, 9000);
 
     emptyQueue(q, 3000);
     assertQueueSize(q, 6000);
 
-    q.fill(4000);
+    q.fill({count: 4000});
     assertQueueSize(q, 10000);
 
     emptyQueue(q, 10000);

@@ -36,10 +36,16 @@ Object.defineProperty(Stack.prototype, "constructor", {enumerable: false, config
 
 //    Check type???
 //Stack.prototype.push = function() {
+Stack.prototype.push = function() {
+    throw new Error("Stack does not implement push().");
+};
 
-Stack.prototype.fill = function(count = 1000) {
-    for (var i = 1; i <= count; i++) {
-        this.push(i);
+//
+//    For testing...
+//    
+Stack.prototype.fill = function({count = 1000, generator = x => x} = {}) {
+    for (let i = 1; i <= count; i++) {
+        this.push(generator(i));
     }
 
     return this;
@@ -207,8 +213,7 @@ HashStack.prototype.clear = function() {
 };
 
 HashStack.prototype.push = function(obj) {
-    this.count++;
-    this.store[this.count] = obj;
+    this.store[++this.count] = obj;
 };
 
 HashStack.prototype.doPop = function() {
@@ -281,10 +286,10 @@ PersistentStack.initializeStack = function(top, count) {
     return newStack;
 };
 
-PersistentStack.prototype.fill = function(count = 1000) {
+PersistentStack.prototype.fill = function({count = 1000, generator = x => x} = {}) {
     let newStack = this;
-    for (var i = 1; i <= count; i++) {
-        newStack = newStack.push(i);
+    for (let i = 1; i <= count; i++) {
+        newStack = newStack.push(generator(i));
     }
 
     return newStack;
@@ -338,10 +343,10 @@ PersistentListStack.initializeStack = function(list) {
 //
 //     Same as PersistentStack?!
 //     
-PersistentListStack.prototype.fill = function(count = 1000) {
+PersistentListStack.prototype.fill = function({count = 1000, generator = x => x} = {}) {
     let newStack = this;
-    for (var i = 1; i <= count; i++) {
-        newStack = newStack.push(i);
+    for (let i = 1; i <= count; i++) {
+        newStack = newStack.push(generator(i));
     }
 
     return newStack;

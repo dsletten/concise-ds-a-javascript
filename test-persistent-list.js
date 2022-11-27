@@ -1,11 +1,11 @@
 /// -*- Mode: Javascript -*-
 //////////////////////////////////////////////////////////////////////////////
 //
-//   test-list.js
+//   test-persistent-list.js
 //
 //   Description
 //
-//   Started:           Sat Jan 22 22:26:47 2022
+//   Started:           Tue Nov 22 15:57:03 2022
 //   Modifications:
 //
 //   Purpose:
@@ -21,29 +21,17 @@
 //
 //   Example:
 //
-//   Notes: testListTime()
+//   Notes:
 //
 //////////////////////////////////////////////////////////////////////////////
 "use strict";
 
-function testListConstructor(listConstructor) {
+function testPersistentListConstructor(listConstructor) {
     let list = listConstructor();
 
     assert(list.isEmpty(), "New list should be empty.");
     assert(list.size() === 0, "Size of new list should be zero.");
     assert(list.get(0) === null, "Accessing element of empty list returns 'null'");
-
-        // try {
-        //     list.delete(0);
-        //     throw new Error("Can't call delete() on empty list.");
-        // } catch (e) {
-        //     switch (e.message) {
-        //         case "List is empty.":
-        //             console.log("Got expected error: " + e);
-        //             break;
-        //         default: throw e;
-        //     }
-        // }
 
     let thrown = assertRaises(Error, () => list.delete(0), "Can't call delete() on empty list.");
     console.log("Got expected error: " + thrown);
@@ -51,34 +39,28 @@ function testListConstructor(listConstructor) {
     return true;
 }
 
-function testListIsEmpty(listConstructor) {
+function testPersistentListIsEmpty(listConstructor) {
     let list = listConstructor();
 
     assert(list.isEmpty(), "New list should be empty.");
-
-    list.add(true);
-    assert(!list.isEmpty(), "List with elt should not be empty.");
-
-    list.delete(0);
-    assert(list.isEmpty(), "Empty list should be empty.");
+    assert(!list.add(true).isEmpty(), "List with elt should not be empty.");
+    assert(list.add(true).delete(0).isEmpty(), "Empty list should be empty.");
 
     return true;
 }
 
-function testListSize(listConstructor, count = 1000) {
+function testPersistentListSize(listConstructor, count = 1000) {
     let list = listConstructor();
 
     assert(list.size() === 0, "Size of new list should be zero.");
 
     for (let i = 1; i <= count; i++) {
-        list.add(i);
-
+        list = list.add(i);
         assertListSize(list, i);
     }
 
     for (let i = count - 1; i >= 0; i--) {
-        list.delete(0);
-
+        list = list.delete(0);
         assertListSize(list, i);
     }
 
@@ -91,19 +73,19 @@ function assertListSize(l, n) {
     assert(l.size() === n, `Size of list should be ${n}`);
 }
 
-function testListClear(listConstructor, count = 1000) {
+function testPersistentListClear(listConstructor, count = 1000) {
     let list = listConstructor().fill({count: count});
 
     assert(!list.isEmpty(), `List should have ${count} elements.`);
 
-    list.clear();
+    list = list.clear();
     assert(list.isEmpty(), "List should be empty.");
     assert(list.size() === 0, "Size of empty list should be zero.");
 
     return true;
 }
 
-function testListContains(listConstructor, count = 1000) {
+function testPersistentListContains(listConstructor, count = 1000) {
     let list = listConstructor().fill({count: count});
     
     for (let i = 1; i <= count; i++) {
@@ -113,7 +95,7 @@ function testListContains(listConstructor, count = 1000) {
     return true;
 }
 
-function testListContainsPredicate(listConstructor) {
+function testPersistentListContainsPredicate(listConstructor) {
     let lowers = [...Array(26)].map((_,i) => String.fromCharCode(i + 'a'.charCodeAt()));
     let uppers = [...Array(26)].map((_,i) => String.fromCharCode(i + 'A'.charCodeAt()));
     let list = listConstructor().add(...lowers);
@@ -126,7 +108,7 @@ function testListContainsPredicate(listConstructor) {
     return true;
 }
 
-function testListContainsArithmetic(listConstructor) {
+function testPersistentListContainsArithmetic(listConstructor) {
     let list = listConstructor().fill({count: 20});
 
     assert(list.contains(3) === 3, "Literal 3 should be present in list.");
@@ -141,12 +123,16 @@ function testListContainsArithmetic(listConstructor) {
     return true;
 }
 
-function testListEquals(listConstructor, count = 1000) {
+function testPersistentListEquals(listConstructor, count = 1000) {
     let list = listConstructor().fill({count: count});
+    let persistentList = new PersistentList().fill({count: count});
     let arrayList = new ArrayList().fill({count: count});
     let doublyLinkedList = new DoublyLinkedList().fill({count: count});
 
     assert(list.equals(list), "Equality should be reflexive.");
+
+    assert(list.equals(persistentList), "Lists with same content should be equal.");
+    assert(persistentList.equals(list), "Equality should be symmetric.");
 
     assert(list.equals(arrayList), "Lists with same content should be equal.");
     assert(arrayList.equals(list), "Equality should be symmetric.");
@@ -157,17 +143,21 @@ function testListEquals(listConstructor, count = 1000) {
     return true;
 }
 
-function testListEqualsPredicate(listConstructor) {
+function testPersistentListEqualsPredicate(listConstructor) {
     let lowers = [...Array(26)].map((_,i) => String.fromCharCode(i + 'a'.charCodeAt()));
     let uppers = [...Array(26)].map((_,i) => String.fromCharCode(i + 'A'.charCodeAt()));
 
     let list = listConstructor().add(...lowers);
+    let persistentList = new PersistentList().add(...uppers);
     let arrayList = new ArrayList().add(...uppers);
     let doublyLinkedList = new DoublyLinkedList().add(...uppers);
 
+    assert(!list.equals(persistentList), "Default test should fail.");
     assert(!list.equals(arrayList), "Default test should fail.");
     assert(!list.equals(doublyLinkedList), "Default test should fail.");
 
+    assert(list.equals(persistentList, (c1, c2) => c1.toUpperCase() === c2.toUpperCase()),
+           "Specific test should succeed.");
     assert(list.equals(arrayList, (c1, c2) => c1.toUpperCase() === c2.toUpperCase()),
            "Specific test should succeed.");
     assert(list.equals(doublyLinkedList, (c1, c2) => c1.toUpperCase() === c2.toUpperCase()),
@@ -176,7 +166,7 @@ function testListEqualsPredicate(listConstructor) {
     return true;
 }
 
-function testListEqualsTransform(listConstructor) {
+function testPersistentListEqualsTransform(listConstructor) {
     function compare(o1, o2) {
         return value(o1) === value(o2);
     }
@@ -206,7 +196,7 @@ function testListEqualsTransform(listConstructor) {
     return true;
 }
 
-function testListEach(listConstructor) {
+function testPersistentListEach(listConstructor) {
     let lowers = [...Array(26)].map((_,i) => String.fromCharCode(i + 'a'.charCodeAt()));
     let list = listConstructor().add(...lowers);
     let result = "";
@@ -218,11 +208,11 @@ function testListEach(listConstructor) {
     return true;
 }
 
-function testListAdd(listConstructor, count = 1000) {
+function testPersistentListAdd(listConstructor, count = 1000) {
     let list = listConstructor();
 
     for (let i = 1; i <= count; i++) {
-        list.add(i);
+        list = list.add(i);
 
         assert(list.size() === i, `Size of list should be ${i} not ${list.size()}`);
         assert(list.get(-1) === i, `Last element of list should be ${i} not ${list.get(-1)}`);
@@ -231,19 +221,19 @@ function testListAdd(listConstructor, count = 1000) {
     return true;
 }
 
-function testListInsert(listConstructor, fillElt = null) {
+function testPersistentListInsert(listConstructor, fillElt = null) {
     let list = listConstructor(fillElt);
     let count = 6;
     let elt1 = "foo";
     let elt2 = "bar";
 
-    list.insert(count-1, elt1);
+    list = list.insert(count-1, elt1);
 
     assert(list.size() === count, "Insert should extend list.");
     assert(list.get(count-1) === elt1, `Inserted element should be '${elt1}'.`);
     assert(list.get(0) === fillElt, `Empty elements should be filled with ${fillElt}`);
 
-    list.insert(0, elt2);
+    list = list.insert(0, elt2);
     
     assert(list.size() === count+1, "Insert should increase length.");
     assert(list.get(0) === elt2, `Inserted element should be '${elt2}'.`);
@@ -251,88 +241,87 @@ function testListInsert(listConstructor, fillElt = null) {
     return true;
 }
 
-function testListInsertFillZero(listConstructor) {
-    return testListInsert(listConstructor, 0);
+function testPersistentListInsertFillZero(listConstructor) {
+    return testPersistentListInsert(listConstructor, 0);
 }
 
-function testListInsertNegativeIndex(listConstructor) {
+function testPersistentListInsertNegativeIndex(listConstructor) {
     let list = listConstructor().add(0);
 
     for (let i = 1; i <= 10; i++) {
-        list.insert(-i, i);
+        list = list.insert(-i, i);
     }
 
     let iterator = list.iterator();
     for (let i = 10; i >= 0; i--) {
         assert(i === iterator.current(), `Inserted element should be: ${i} but found: ${iterator.current()}`);
-        iterator.next();
+        iterator = iterator.next();
     }
 
     return true;
 }
 
-function testListInsertEnd(listConstructor) {
+function testPersistentListInsertEnd(listConstructor) {
     let list = listConstructor().add(0, 1, 2);
     let x = 3;
     let y = 10;
 
-    list.insert(x, x);
-
+    list = list.insert(x, x);
     assert(list.get(x) === x, `Element at index ${x} should be ${x}`);
     assert(list.size() === x+1, `Size of list should be ${x+1} not ${list.size()}.`);
 
-    list.insert(y, y);
-    
+    list = list.insert(y, y);
     assert(list.get(y) === y, `Element at index ${y} should be ${y}`);
     assert(list.size() === y+1, `Size of list should be ${y+1} not ${list.size()}.`);
     
     return true;
 }
 
-function testListInsertOffset(listConstructor, count = 1000) {
-    let lowIndex = 1;
-    let highIndex = 3/4 * count;
-    let elt = 88;
+// function testPersistentListInsertOffset(listConstructor, count = 1000) {
+//     let lowIndex = 1;
+//     let highIndex = 3/4 * count;
+//     let elt = 88;
     
+//     {
+//         let list = listConstructor().fill({count: count});
+//         list.delete(0);
+//         assert(list.get(0) === 2, `First element should be 2 not ${list.get(0)}.`);
+        
+//         list.insert(0, elt);
+//         assert(list.get(0) === elt, `First element should be ${elt} not ${list.get(0)}.`);
+//     }
+
+//     {
+//         let list = listConstructor().fill({count: count});
+//         list.delete(0);
+        
+//         list.insert(lowIndex, elt);
+//         assert(list.get(0) === 2, `First element should be 2 not ${list.get(0)}.`);
+//         assert(list.get(lowIndex) === elt, `Element ${lowIndex} element should be ${elt} not ${list.get(lowIndex)}.`);
+//     }
+
+//     {
+//         let list = listConstructor().fill({count: count});
+//         list.delete(0);
+        
+//         list.insert(highIndex, elt);
+//         assert(list.get(0) === 2, `First element should be 2 not ${list.get(0)}.`);
+//         assert(list.get(highIndex) === elt, `Element ${highIndex} should be ${elt} not ${list.get(highIndex)}.`);
+//     }
+
+//     return true;
+// }
+        
+function testPersistentListDelete(listConstructor, count = 1000) {
     {
         let list = listConstructor().fill({count: count});
-        list.delete(0);
-        assert(list.get(0) === 2, `First element should be 2 not ${list.get(0)}.`);
-        
-        list.insert(0, elt);
-        assert(list.get(0) === elt, `First element should be ${elt} not ${list.get(0)}.`);
-    }
 
-    {
-        let list = listConstructor().fill({count: count});
-        list.delete(0);
-        
-        list.insert(lowIndex, elt);
-        assert(list.get(0) === 2, `First element should be 2 not ${list.get(0)}.`);
-        assert(list.get(lowIndex) === elt, `Element ${lowIndex} element should be ${elt} not ${list.get(lowIndex)}.`);
-    }
-
-    {
-        let list = listConstructor().fill({count: count});
-        list.delete(0);
-        
-        list.insert(highIndex, elt);
-        assert(list.get(0) === 2, `First element should be 2 not ${list.get(0)}.`);
-        assert(list.get(highIndex) === elt, `Element ${highIndex} should be ${elt} not ${list.get(highIndex)}.`);
-    }
-
-    return true;
-}
-        
-function testListDelete(listConstructor, count = 1000) {
-    {
-        let list = listConstructor().fill({count: count});
-
-        for (let i = count - 1; i >= 0; i--) {
-            let expected = list.get(0);
-            let doomed = list.delete(0);
+        for (let i = count-1, j = 1; i >= 0; i--, j++) {
+            assert(list.get(0) === j, `Incorrect value at front of list: ${list.get(0)} rather than ${j}`);
+            let next = list.get(1);
+            list = list.delete(0);
             assert(list.size() === i, "List size should reflect deletions");
-            assert(doomed === expected, `Incorrect deleted value returned: ${doomed} rather than ${expected}`);
+            assert(next === list.get(0), `Incorrect value replaced deleted value: ${next} rather than ${list.get(0)}`);
         }
 
         assert(list.isEmpty(), "Empty list should be empty.");
@@ -341,24 +330,23 @@ function testListDelete(listConstructor, count = 1000) {
     {
         let list = listConstructor().fill({count: count});
 
-        for (let i = count - 1; i >= 0; i--) {
-            let expected = list.get(i);
-            let doomed = list.delete(i);
-            assert(doomed === expected, `Incorrect deleted value returned: ${doomed} rather than ${expected}`);
+        for (let i = count-1; i >= 1; i--) {
+            let next = list.get(i-1);
+            list = list.delete(i);
+            assert(next === list.get(-1), `Incorrect value replaced deleted value: ${next} rather than ${list.get(-1)}`);
         }
 
-        assert(list.isEmpty(), "Empty list should be empty.");
+        assert(list.delete(0).isEmpty(), "Empty list should be empty.");
     }
 
     return true;
 }
 
-function testListDeleteNegativeIndex(listConstructor, count = 1000) {
+function testPersistentListDeleteNegativeIndex(listConstructor, count = 1000) {
     let list = listConstructor().fill({count: count});
     
     for (let i = count; i >= 1; i--) {
-        let expected = list.get(-1);
-        assert(list.delete(-1) === expected, "Deleted element should be last in list");
+        assert(list.delete(-1) === i, "Deleted element should be last in list");
     }
     
     assert(list.isEmpty(), "Empty list should be empty.");
@@ -366,7 +354,7 @@ function testListDeleteNegativeIndex(listConstructor, count = 1000) {
     return true;
 }
 
-function testListDeleteOffset(listConstructor, count = 1000) {
+function testPersistentListDeleteOffset(listConstructor, count = 1000) {
     let lowIndex = 1;
     let highIndex = 3/4 * count;
     let list = listConstructor().fill({count: count});
@@ -385,7 +373,7 @@ function testListDeleteOffset(listConstructor, count = 1000) {
     return true;
 }
 
-function testListGet(listConstructor, count = 1000) {
+function testPersistentListGet(listConstructor, count = 1000) {
     let list = listConstructor().fill({count: count});
     
     for (let i = 0; i < count; i++) {
@@ -395,7 +383,7 @@ function testListGet(listConstructor, count = 1000) {
     return true;
 }
 
-function testListGetNegativeIndex(listConstructor, count = 1000) {
+function testPersistentListGetNegativeIndex(listConstructor, count = 1000) {
     let list = listConstructor().fill({count: count});
     
     for (let i = -1; i >= -count; i--) {
@@ -405,7 +393,7 @@ function testListGetNegativeIndex(listConstructor, count = 1000) {
     return true;
 }
 
-function testListSet(listConstructor, count = 1000) {
+function testPersistentListSet(listConstructor, count = 1000) {
     let list = listConstructor();
     
     for (let i = 0; i <= count; i++) {
@@ -421,7 +409,7 @@ function testListSet(listConstructor, count = 1000) {
     return true;
 }
 
-function testListSetNegativeIndex(listConstructor, count = 1000) {
+function testPersistentListSetNegativeIndex(listConstructor, count = 1000) {
     let list = listConstructor().fill({count: count});
     
     for (let i = -1; i >= -count; i--) {
@@ -435,7 +423,7 @@ function testListSetNegativeIndex(listConstructor, count = 1000) {
     return true;
 }
 
-function testListSetOutOfBounds(listConstructor) {
+function testPersistentListSetOutOfBounds(listConstructor) {
     let list = listConstructor();
     let index = 10;
     let elt = "foo";
@@ -449,7 +437,7 @@ function testListSetOutOfBounds(listConstructor) {
     return true;
 }
 
-function testListIndex(listConstructor, count = 1000) {
+function testPersistentListIndex(listConstructor, count = 1000) {
     let list = listConstructor().fill({count: count});
     
     for (let i = 1; i <= count; i++) {
@@ -459,7 +447,7 @@ function testListIndex(listConstructor, count = 1000) {
     return true;
 }
 
-function testListIndexPredicate(listConstructor) {
+function testPersistentListIndexPredicate(listConstructor) {
     let lowers = [...Array(26)].map((_,i) => String.fromCharCode(i + 'a'.charCodeAt()));
     let uppers = [...Array(26)].map((_,i) => String.fromCharCode(i + 'A'.charCodeAt()));
     let list = listConstructor().add(...lowers);
@@ -471,7 +459,7 @@ function testListIndexPredicate(listConstructor) {
     return true;
 }
 
-function testListIndexArithmetic(listConstructor) {
+function testPersistentListIndexArithmetic(listConstructor) {
     let list = listConstructor().fill({count: 20});
 
     assert(list.index(3) === 2, "Literal 3 should be at index 2.");
@@ -486,7 +474,7 @@ function testListIndexArithmetic(listConstructor) {
     return true;
 }
 
-function testListSlice(listConstructor, count = 1000) {
+function testPersistentListSlice(listConstructor, count = 1000) {
     let list = listConstructor().fill({count: count});
     let j = Math.floor(count/10);
     let n = Math.floor(count/2);
@@ -501,7 +489,7 @@ function testListSlice(listConstructor, count = 1000) {
     return true;
 }
 
-function testListSliceNegativeIndex(listConstructor, count = 1000) {
+function testPersistentListSliceNegativeIndex(listConstructor, count = 1000) {
     let list = listConstructor().fill({count: count});
     let j = Math.floor(count/2);
     let n = Math.floor(count/2);
@@ -516,29 +504,28 @@ function testListSliceNegativeIndex(listConstructor, count = 1000) {
     return true;
 }
 
-function testListSliceCornerCases(listConstructor, count = 1000) {
+function testPersistentListSliceCornerCases(listConstructor, count = 1000) {
     let list = listConstructor().fill({count: count});
-    let n = 10;
 
     {
-        let slice = list.slice(list.size(), n);
+        let slice = list.slice(list.size(), 10);
         assert(slice.isEmpty(), "Slice at end of list should be empty");
     }
     
     {
-        let slice = list.slice(-n, n);
-        assert(slice.size() === n, `Slice of last ${n} elements should have ${n} elements: ${slice.size()}`);
+        let slice = list.slice(-10, 10);
+        assert(slice.size() === 10, `Slice of last 10 elements should have 10 elements: ${slice.size()}`);
     }
 
     {
-        let slice = list.slice(-(count + 1), n);
+        let slice = list.slice(-(count + 1), 10);
         assert(slice.isEmpty(), "Slice with invalid negative index should be empty");
     }
 
     return true;
 }
 
-function testListReverse(listConstructor, count = 1000) {
+function testPersistentListReverse(listConstructor, count = 1000) {
     let original = listConstructor().fill({count: count});
     let backward = original.reverse();
     let expected = listConstructor();
@@ -555,7 +542,7 @@ function testListReverse(listConstructor, count = 1000) {
     return true;
 }
 
-function testListTime(listConstructor) {
+function testPersistentListTime(listConstructor) {
     console.log();
     {
         let list = listConstructor();
@@ -682,161 +669,22 @@ function testListTime(listConstructor) {
     return true;
 }
 
-function listTestSuite(listConstructor) {
-    console.log(`Testing ${listConstructor().constructor.name}`);
-
-    let tests = [testListConstructor,
-                 testListIsEmpty,
-                 testListSize,
-                 testListClear,
-                 testListContains,
-                 testListContainsPredicate,
-                 testListContainsArithmetic,
-                 testListEquals,
-                 testListEqualsPredicate,
-                 testListEqualsTransform,
-                 testListEach,
-                 testListAdd,
-                 testListInsert,
-                 testListInsertFillZero,
-                 testListInsertNegativeIndex,
-                 testListInsertEnd,
-                 testListInsertOffset,
-                 testListDelete,
-                 testListDeleteOffset,
-                 testListDeleteNegativeIndex,
-                 testListGet,
-                 testListGetNegativeIndex,
-                 testListSet,
-                 testListSetNegativeIndex,
-                 testListSetOutOfBounds,
-                 testListIndex,
-                 testListIndexPredicate,
-                 testListIndexArithmetic,
-                 testListSlice,
-                 testListSliceNegativeIndex,
-                 testListSliceCornerCases,
-                 testListReverse,
-                 testListTime];
-
-    assert(!tests.some(test => { console.log(test); return test(listConstructor) === false; }));
-
-    return true;
+function testPersistentList() {
+    return testPersistentListConstructor(() => new PersistentList())  &&
+        testPersistentListIsEmpty(() => new PersistentList())  &&
+        testPersistentListSize(() => new PersistentList())  &&
+        testPersistentListClear(() => new PersistentList())  &&
+        testPersistentListContains(() => new PersistentList())  &&
+        testPersistentListContainsPredicate(() => new PersistentList())  &&
+        testPersistentListContainsArithmetic(() => new PersistentList())  &&
+        testPersistentListEquals(() => new PersistentList())  &&
+        testPersistentListEqualsPredicate(() => new PersistentList())  &&
+        testPersistentListEqualsTransform(() => new PersistentList())  &&
+        testPersistentListEach(() => new PersistentList())  &&
+        testPersistentListAdd(() => new PersistentList())  &&
+        testPersistentListInsert(() => new PersistentList())  &&
+        testPersistentListInsertFillZero(fillElt => new PersistentList(fillElt))  &&
+        testPersistentListInsertNegativeIndex(() => new PersistentList())  &&
+        testPersistentListInsertEnd(() => new PersistentList())  &&
+        testPersistentListDelete(() => new PersistentList());
 }
-
-function testArrayList() {
-    return listTestSuite(fillElt => new ArrayList(fillElt));
-}
-
-function testSinglyLinkedList() {
-    return listTestSuite(fillElt => new SinglyLinkedList(fillElt));
-}
-
-function testDoublyLinkedList() {
-    return listTestSuite(fillElt => new DoublyLinkedList(fillElt));
-}
-
-function testDoublyLinkedListRatchet() {
-    return listTestSuite(fillElt => new DoublyLinkedListRatchet(fillElt));
-}
-
-function testDoublyLinkedListMap() {
-    return listTestSuite(fillElt => new DoublyLinkedListMap(fillElt));
-}
-
-function testHashTableList() {
-    return listTestSuite(fillElt => new HashTableList(fillElt));
-}
-
-function testHashTableListX() {
-    return listTestSuite(fillElt => new HashTableListX(fillElt));
-}
-
-function testMapList() {
-    return listTestSuite(fillElt => new MapList(fillElt));
-}
-
-function testMapListX() {
-    return listTestSuite(fillElt => new MapListX(fillElt));
-}
-
-function testListAll() {
-    return testArrayList() &&
-           testSinglyLinkedList() &&
-           testDoublyLinkedList() &&
-           testDoublyLinkedListRatchet() &&
-           testDoublyLinkedListMap() &&
-           testHashTableList() &&
-           testHashTableListX() &&
-           testMapList() &&
-           testMapListX();
-}
-
-// var al = new ArrayList()
-// var al = new ArrayList()
-// [Function]
-// > al.add('a', 'b', 'c')
-// al.add('a', 'b', 'c')
-// undefined
-// > var sll = new SinglyLinkedList()
-// var sll = new SinglyLinkedList()
-// undefined
-// > sll.add('A', 'B', 'C')
-// sll.add('A', 'B', 'C')
-// undefined
-// > al.equals(sll)
-// al.equals(sll)
-// false
-// > sll.equals(al)
-// sll.equals(al)
-// false
-// > al.equals(sll, (x, y) => x.toLowerCase() === y.toLowerCase())
-// al.equals(sll, (x, y) => x.toLowerCase() === y.toLowerCase())
-// true
-// > sll.equals(al, (x, y) => x.toLowerCase() === y.toLowerCase())
-// sll.equals(al, (x, y) => x.toLowerCase() === y.toLowerCase())
-// true
-//     >
-
-// var al = new ArrayList()
-// al.add(1, 2, 3, 4, 5)
-// al.index(3)
-// 2
-// al.index(3, (item, elt) => elt % item === 0)
-// 2
-
-// var sll = new SinglyLinkedList()
-// sll.add(1, 2, 3, 4, 5)
-// sll.index(3)
-// 2
-// sll.index(3, (item, elt) => elt % item === 0)
-// 2
-
-// var dll = new DoublyLinkedList()
-// dll.add(1, 2, 3, 4, 5)
-// dll.index(3)
-// 2
-// dll.index(3, (item, elt) => elt % item === 0)
-// 2
-
-// var sll = new SinglyLinkedList()
-// sll.add(1, 2, 3, 4, 5)
-// var dll = new DoublyLinkedList()
-// dll.add(-1, -2, -3, -4, -5)
-
-// sll.equals(dll)
-// false
-
-// sll.equals(dll, (x, y) => x + y === 0)
-// true
-
-// var sll = new SinglyLinkedList()
-// sll.add(1, 2, 3, 4, 5)
-// sll.contains(3)
-// 3
-
-// sll.contains(3, (item, elt) => elt === item + 1)
-// 4
-
-// sll.contains(2, (item, elt) => elt > item * 2)
-// 5
