@@ -176,7 +176,7 @@ function persistentStackTestSuite(stackConstructor) {
 }
 
 function testPersistentStackAll() {
-    let constructors = [() => new PersistentStack(),
+    let constructors = [() => new PersistentLinkedStack(),
                         () => new PersistentListStack()];
     return constructors.every(constructor => persistentStackTestSuite(constructor));
 }

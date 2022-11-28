@@ -278,14 +278,6 @@ PersistentStack.prototype = Object.create(Stack.prototype);
 PersistentStack.prototype.constructor = PersistentStack;
 Object.defineProperty(PersistentStack.prototype, "constructor", {enumerable: false, configurable: false});
 
-PersistentStack.initializeStack = function(top, count) {
-    let newStack = new PersistentStack();
-    newStack.top = top;
-    newStack.count = count;
-
-    return newStack;
-};
-
 PersistentStack.prototype.fill = function({count = 1000, generator = x => x} = {}) {
     let newStack = this;
     for (let i = 1; i <= count; i++) {
@@ -295,27 +287,47 @@ PersistentStack.prototype.fill = function({count = 1000, generator = x => x} = {
     return newStack;
 };
 
-PersistentStack.prototype.size = function() {
+//
+//     PersistentLinkedStack
+//     
+function PersistentLinkedStack() {
+    this.top = null;
+    this.count = 0;
+}
+
+PersistentLinkedStack.prototype = Object.create(PersistentStack.prototype);
+PersistentLinkedStack.prototype.constructor = PersistentLinkedStack;
+Object.defineProperty(PersistentLinkedStack.prototype, "constructor", {enumerable: false, configurable: false});
+
+PersistentLinkedStack.initializeStack = function(top, count) {
+    let newStack = new PersistentLinkedStack();
+    newStack.top = top;
+    newStack.count = count;
+
+    return newStack;
+};
+
+PersistentLinkedStack.prototype.size = function() {
     return this.count;
 };
 
-PersistentStack.prototype.isEmpty = function() {
+PersistentLinkedStack.prototype.isEmpty = function() {
     return this.top === null;
 };
 
-PersistentStack.prototype.clear = function() {
-    return new PersistentStack();
+PersistentLinkedStack.prototype.clear = function() {
+    return new PersistentLinkedStack();
 };
 
-PersistentStack.prototype.push = function(obj) {
-    return PersistentStack.initializeStack(new Node(obj, this.top), this.count+1);
+PersistentLinkedStack.prototype.push = function(obj) {
+    return PersistentLinkedStack.initializeStack(new Node(obj, this.top), this.count+1);
 };
 
-PersistentStack.prototype.doPop = function() {
-    return PersistentStack.initializeStack(this.top.rest(), this.count-1);
+PersistentLinkedStack.prototype.doPop = function() {
+    return PersistentLinkedStack.initializeStack(this.top.rest(), this.count-1);
 };
 
-PersistentStack.prototype.doPeek = function() {
+PersistentLinkedStack.prototype.doPeek = function() {
     return this.top.first();
 };
 
@@ -326,7 +338,7 @@ function PersistentListStack() {
     this.list = PersistentListStack.empty;
 }
 
-PersistentListStack.prototype = Object.create(Stack.prototype);
+PersistentListStack.prototype = Object.create(PersistentStack.prototype);
 PersistentListStack.prototype.constructor = PersistentListStack;
 Object.defineProperty(PersistentListStack.prototype, "constructor", {enumerable: false, configurable: false});
 
@@ -336,18 +348,6 @@ Object.defineProperty(PersistentListStack, "empty", {enumerable: false, configur
 PersistentListStack.initializeStack = function(list) {
     let newStack = new PersistentListStack();
     newStack.list = list;
-
-    return newStack;
-};
-
-//
-//     Same as PersistentStack?!
-//     
-PersistentListStack.prototype.fill = function({count = 1000, generator = x => x} = {}) {
-    let newStack = this;
-    for (let i = 1; i <= count; i++) {
-        newStack = newStack.push(generator(i));
-    }
 
     return newStack;
 };
