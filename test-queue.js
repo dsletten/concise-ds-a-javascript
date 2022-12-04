@@ -327,6 +327,7 @@ function runAllDequeTests(dequeConstructor) {
 
 function testQueueAll() {
     let constructors = [() => new ArrayQueue(),
+                        () => new ArrayRingBuffer(),
                         () => new LinkedQueue(),
                         () => new LinkedListQueue(),
                         () => new CircularQueue(),

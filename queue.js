@@ -34,17 +34,6 @@ Queue.prototype = Object.create(Dispenser.prototype);
 Queue.prototype.constructor = Queue;
 Object.defineProperty(Queue.prototype, "constructor", {enumerable: false, configurable: false});
 
-//
-//    Not appropriate for PersistentQueue!
-//    
-Queue.prototype.fill = function({count = 1000, generator = x => x} = {}) {
-    for (let i = 1; i <= count; i++) {
-        this.enqueue(generator(i));
-    }
-
-    return this;
-};
-
 Queue.prototype.isEmpty = function() {
     return this.size() === 0;
 };
@@ -57,6 +46,9 @@ Queue.prototype.clear = function() {
 
 //    Check type???
 //Queue.prototype.enqueue = function() {
+Queue.prototype.enqueue = function() {
+    throw new Error("Queue does not implement enqueue().");
+};
 
 Queue.prototype.dequeue = function() {
     if ( this.isEmpty() ) {
@@ -74,10 +66,6 @@ Queue.prototype.front = function() {
     }
 };
 
-Queue.prototype.enqueue = function() {
-    throw new Error("Queue does not implement enqueue().");
-};
-
 Queue.prototype.doDequeue = function() {
     throw new Error("Queue does not implement doDequeue().");
 };
@@ -87,7 +75,18 @@ Queue.prototype.doFront = function() {
 };
 
 //
-//     ArrayQueue
+//    Not appropriate for PersistentQueue!
+//    
+Queue.prototype.fill = function({count = 1000, generator = x => x} = {}) {
+    for (let i = 1; i <= count; i++) {
+        this.enqueue(generator(i));
+    }
+
+    return this;
+};
+
+//
+//     ArrayQueue (见 RubyQueue. Uses built-in array operations)
 //
 function ArrayQueue() {
     this.store = [];
@@ -122,6 +121,61 @@ ArrayQueue.prototype.doFront = function() {
 };
 
 //
+//     ArrayRingBuffer (见 Lisp ARRAY-QUEUE)
+//
+function ArrayRingBuffer() {
+    this.store = new Array(ArrayRingBuffer.INITIAL_CAPACITY);
+    this.head = 0;
+    this.count = 0;
+}
+
+ArrayRingBuffer.prototype = Object.create(Queue.prototype);
+ArrayRingBuffer.prototype.constructor = ArrayRingBuffer;
+Object.defineProperty(ArrayRingBuffer.prototype, "constructor", {enumerable: false, configurable: false});
+
+ArrayRingBuffer.INITIAL_CAPACITY = 20;
+
+ArrayRingBuffer.prototype.offset = function(i) {
+    return (this.head + i) % this.store.length;
+};
+
+ArrayRingBuffer.prototype.resize = function() {
+    let newStore = new Array(this.store.length * 2);
+    for (let i = 0; i < this.count; i++) {
+        newStore[i] = this.store[this.offset(i)];
+    }
+
+    this.store = newStore;
+    this.head = 0;
+};
+
+ArrayRingBuffer.prototype.size = function() {
+    return this.count;
+};
+
+ArrayRingBuffer.prototype.enqueue = function(obj) {
+    if ( this.count === this.store.length ) {
+        this.resize();
+    }
+
+    this.store[this.offset(this.count)] = obj;
+    this.count++;
+};
+
+ArrayRingBuffer.prototype.doDequeue = function() {
+    let discard = this.front();
+    this.store[this.head] = null;
+    this.head = this.offset(1);
+    this.count--;
+
+    return discard;
+};
+
+ArrayRingBuffer.prototype.doFront = function() {
+    return this.store[this.head];
+};
+
+//
 //     LinkedQueue
 //     
 function LinkedQueue() {
@@ -138,10 +192,6 @@ LinkedQueue.prototype.size = function() {
     return this.count;
 };
 
-// LinkedQueue.prototype.isEmpty = function() {
-//     return this.size() === 0;
-// };
-
 LinkedQueue.prototype.clear = function() {
     this.head = null;
     this.tail = null;
@@ -151,7 +201,7 @@ LinkedQueue.prototype.clear = function() {
 LinkedQueue.prototype.enqueue = function(obj) {
     let node = new Node(obj, null);
 
-    if ( this.head === null ) {
+    if ( this.isEmpty() ) {
         this.tail = this.head = node;
     } else {
         this.tail.setRest(node);
@@ -225,10 +275,6 @@ Object.defineProperty(CircularQueue.prototype, "constructor", {enumerable: false
 CircularQueue.prototype.size = function() {
     return this.count;
 };
-
-// CircularQueue.prototype.isEmpty = function() {
-//     return this.size() === 0;
-// };
 
 CircularQueue.prototype.clear = function() {
     this.index = null;
@@ -361,22 +407,15 @@ MapQueue.prototype.doFront = function() {
 //    PersistentQueue
 // 
 function PersistentQueue() {
-    this.head = null;
-    this.tail = null;
-    this.count = 0;
+    throw new Error("Cannot instantiate PersistentQueue.");
 }
 
 PersistentQueue.prototype = Object.create(Queue.prototype);
 PersistentQueue.prototype.constructor = PersistentQueue;
 Object.defineProperty(PersistentQueue.prototype, "constructor", {enumerable: false, configurable: false});
 
-PersistentQueue.initializeQueue = function(head, tail, count) {
-    let newQueue = new PersistentQueue();
-    newQueue.head = head;
-    newQueue.tail = tail;
-    newQueue.count = count;
-
-    return newQueue;
+PersistentQueue.prototype.clear = function() {
+    return this.makeEmptyPersistentQueue();
 };
 
 PersistentQueue.prototype.fill = function({count = 1000, generator = x => x} = {}) {
@@ -388,35 +427,53 @@ PersistentQueue.prototype.fill = function({count = 1000, generator = x => x} = {
     return newQueue;
 };
 
-PersistentQueue.prototype.size = function() {
+//
+//    PersistentLinkedQueue
+// 
+function PersistentLinkedQueue() {
+    this.head = null;
+    this.tail = null;
+    this.count = 0;
+}
+
+PersistentLinkedQueue.prototype = Object.create(PersistentQueue.prototype);
+PersistentLinkedQueue.prototype.constructor = PersistentLinkedQueue;
+Object.defineProperty(PersistentLinkedQueue.prototype, "constructor", {enumerable: false, configurable: false});
+
+PersistentLinkedQueue.initializeQueue = function(head, tail, count) {
+    let newQueue = new PersistentLinkedQueue();
+    newQueue.head = head;
+    newQueue.tail = tail;
+    newQueue.count = count;
+
+    return newQueue;
+};
+
+PersistentLinkedQueue.prototype.makeEmptyPersistentQueue = function() {
+    return new PersistentLinkedQueue();
+};
+
+PersistentLinkedQueue.prototype.size = function() {
     return this.count;
 };
 
-// PersistentQueue.prototype.isEmpty = function() {
-//     return this.size() === 0;
-// };
-
-PersistentQueue.prototype.clear = function() {
-    return new PersistentQueue();
-};
-
-PersistentQueue.prototype.enqueue = function(obj) {
+PersistentLinkedQueue.prototype.enqueue = function(obj) {
     if ( this.isEmpty() ) {
-        return PersistentQueue.initializeQueue(new Node(obj, null), null, 1);
+        return PersistentLinkedQueue.initializeQueue(new Node(obj, null), null, 1);
     } else {
-        return PersistentQueue.initializeQueue(this.head, new Node(obj, this.tail), this.count+1);
+        return PersistentLinkedQueue.initializeQueue(this.head, new Node(obj, this.tail), this.count+1);
     }
 };
 
-PersistentQueue.prototype.doDequeue = function() {
+PersistentLinkedQueue.prototype.doDequeue = function() {
     if ( this.head.rest() === null ) {
-        return PersistentQueue.initializeQueue(Node.reverse(this.tail), null, this.count-1);
+        return PersistentLinkedQueue.initializeQueue(Node.reverse(this.tail), null, this.count-1);
     } else {
-        return PersistentQueue.initializeQueue(this.head.rest(), this.tail, this.count-1);
+        return PersistentLinkedQueue.initializeQueue(this.head.rest(), this.tail, this.count-1);
     }
 };
 
-PersistentQueue.prototype.doFront = function() {
+PersistentLinkedQueue.prototype.doFront = function() {
     return this.head.first();
 };
 
@@ -427,7 +484,7 @@ function PersistentListQueue() {
     this.list = PersistentListQueue.empty;
 }
 
-PersistentListQueue.prototype = Object.create(Queue.prototype);
+PersistentListQueue.prototype = Object.create(PersistentQueue.prototype);
 PersistentListQueue.prototype.constructor = PersistentListQueue;
 Object.defineProperty(PersistentListQueue.prototype, "constructor", {enumerable: false, configurable: false});
 
@@ -441,21 +498,12 @@ PersistentListQueue.initializeQueue = function(list) {
     return newQueue;
 };
 
-PersistentListQueue.prototype.fill = function({count = 1000, generator = x => x} = {}) {
-    let newQueue = this;
-    for (let i = 1; i <= count; i++) {
-        newQueue = newQueue.enqueue(generator(i));
-    }
-
-    return newQueue;
+PersistentListQueue.prototype.makeEmptyPersistentQueue = function() {
+    return new PersistentListQueue();
 };
 
 PersistentListQueue.prototype.size = function() {
     return this.list.size();
-};
-
-PersistentListQueue.prototype.clear = function() {
-    return new PersistentListQueue();
 };
 
 PersistentListQueue.prototype.enqueue = function(obj) {
@@ -480,10 +528,6 @@ function Deque() {
 Deque.prototype = Object.create(Queue.prototype);
 Deque.prototype.constructor = Deque;
 Object.defineProperty(Deque.prototype, "constructor", {enumerable: false, configurable: false});
-
-// Deque.prototype.isEmpty = function() {
-//     return this.size() === 0;
-// };
 
 Deque.prototype.enqueueFront = function(obj) {
     throw new Error("Deque does not implement enqueueFront().");
@@ -534,6 +578,10 @@ Object.defineProperty(DllDeque.prototype, "constructor", {enumerable: false, con
 
 DllDeque.prototype.size = function() {
     return this.list.size();
+};
+
+DllDeque.prototype.clear = function() {
+    this.list.clear();
 };
 
 DllDeque.prototype.enqueue = function(obj) {
@@ -716,24 +764,18 @@ MapDeque.prototype.doRear = function() {
 //    PersistentDeque
 //
 function PersistentDeque() {
-    this.head = null;
-    this.tail = null;
-    this.count = 0;
+    throw new Error("Cannot instantiate PersistentDeque.");
 }
 
 PersistentDeque.prototype = Object.create(Deque.prototype);
 PersistentDeque.prototype.constructor = PersistentDeque;
 Object.defineProperty(PersistentDeque.prototype, "constructor", {enumerable: false, configurable: false});
 
-PersistentDeque.initializeDeque = function(head, tail, count) {
-    let newDeque = new PersistentDeque();
-    newDeque.head = head;
-    newDeque.tail = tail
-    newDeque.count = count;
-
-    return newDeque;
+PersistentDeque.prototype.clear = function() {
+    return this.makeEmptyPersistentDeque();
 };
 
+//    Use PersistentQueue's fill()??
 PersistentDeque.prototype.fill = function({count = 1000, generator = x => x} = {}) {
     let newDeque = this;
     for (let i = 1; i <= count; i++) {
@@ -743,59 +785,81 @@ PersistentDeque.prototype.fill = function({count = 1000, generator = x => x} = {
     return newDeque;
 };
 
-PersistentDeque.prototype.size = function() {
+//
+//    PersistentLinkedDeque
+//
+function PersistentLinkedDeque() {
+    this.head = null;
+    this.tail = null;
+    this.count = 0;
+}
+
+PersistentLinkedDeque.prototype = Object.create(PersistentDeque.prototype);
+PersistentLinkedDeque.prototype.constructor = PersistentLinkedDeque;
+Object.defineProperty(PersistentLinkedDeque.prototype, "constructor", {enumerable: false, configurable: false});
+
+PersistentLinkedDeque.initializeDeque = function(head, tail, count) {
+    let newDeque = new PersistentLinkedDeque();
+    newDeque.head = head;
+    newDeque.tail = tail
+    newDeque.count = count;
+
+    return newDeque;
+};
+
+PersistentLinkedDeque.prototype.makeEmptyPersistentDeque = function() {
+    return new PersistentLinkedDeque();
+};
+
+PersistentLinkedDeque.prototype.size = function() {
     return this.count;
 };
 
-PersistentDeque.prototype.clear = function() {
-    return new PersistentDeque();
-};
-
-PersistentDeque.prototype.enqueue = function(obj) {
+PersistentLinkedDeque.prototype.enqueue = function(obj) {
     if ( this.isEmpty() ) {
-        return PersistentDeque.initializeDeque(new Node(obj, null), new Node(obj, null), 1);
+        return PersistentLinkedDeque.initializeDeque(new Node(obj, null), new Node(obj, null), 1);
     } else {
-        return PersistentDeque.initializeDeque(this.head, new Node(obj, this.tail), this.count+1);
+        return PersistentLinkedDeque.initializeDeque(this.head, new Node(obj, this.tail), this.count+1);
     }
 };
 
-PersistentDeque.prototype.enqueueFront = function(obj) {
+PersistentLinkedDeque.prototype.enqueueFront = function(obj) {
     if ( this.isEmpty() ) {
-        return PersistentDeque.initializeDeque(new Node(obj, null), new Node(obj, null), 1);
+        return PersistentLinkedDeque.initializeDeque(new Node(obj, null), new Node(obj, null), 1);
     } else {
-        return PersistentDeque.initializeDeque(new Node(obj, this.head), this.tail, this.count+1);
+        return PersistentLinkedDeque.initializeDeque(new Node(obj, this.head), this.tail, this.count+1);
     }
 };
 
-PersistentDeque.prototype.doDequeue = function() {
+PersistentLinkedDeque.prototype.doDequeue = function() {
     if ( this.head.rest() === null ) {
         if ( this.tail.rest() === null ) {
             return this.clear();
         } else {
-            return PersistentDeque.initializeDeque(Node.reverse(this.tail).rest(), new Node(this.rear(), null), this.count-1);
+            return PersistentLinkedDeque.initializeDeque(Node.reverse(this.tail).rest(), new Node(this.rear(), null), this.count-1);
         }
     } else {
-        return PersistentDeque.initializeDeque(this.head.rest(), this.tail, this.count-1);
+        return PersistentLinkedDeque.initializeDeque(this.head.rest(), this.tail, this.count-1);
     }
 };
 
-PersistentDeque.prototype.doDequeueRear = function() {
+PersistentLinkedDeque.prototype.doDequeueRear = function() {
     if ( this.tail.rest() === null ) {
         if ( this.head.rest() === null ) {
             return this.clear();
         } else {
-            return PersistentDeque.initializeDeque(new Node(this.front(), null), Node.reverse(this.head).rest(), this.count-1);
+            return PersistentLinkedDeque.initializeDeque(new Node(this.front(), null), Node.reverse(this.head).rest(), this.count-1);
         }
     } else {
-        return PersistentDeque.initializeDeque(this.head, this.tail.rest(), this.count-1);
+        return PersistentLinkedDeque.initializeDeque(this.head, this.tail.rest(), this.count-1);
     }
 };
 
-PersistentDeque.prototype.doFront = function() {
+PersistentLinkedDeque.prototype.doFront = function() {
     return this.head.first();
 };
 
-PersistentDeque.prototype.doRear = function() {
+PersistentLinkedDeque.prototype.doRear = function() {
     return this.tail.first();
 };
 
@@ -806,7 +870,7 @@ function PersistentListDeque() {
     this.list = PersistentListDeque.empty;
 }
 
-PersistentListDeque.prototype = Object.create(Deque.prototype);
+PersistentListDeque.prototype = Object.create(PersistentDeque.prototype);
 PersistentListDeque.prototype.constructor = PersistentListDeque;
 Object.defineProperty(PersistentListDeque.prototype, "constructor", {enumerable: false, configurable: false});
 
@@ -820,24 +884,12 @@ PersistentListDeque.initializeDeque = function(list) {
     return newDeque;
 };
 
-//
-//     Same as PersistentDeque?!
-//     
-PersistentListDeque.prototype.fill = function({count = 1000, generator = x => x} = {}) {
-    let newDeque = this;
-    for (let i = 1; i <= count; i++) {
-        newDeque = newDeque.enqueue(generator(i));
-    }
-
-    return newDeque;
+PersistentListDeque.prototype.makeEmptyPersistentDeque = function() {
+    return new PersistentListDeque();
 };
 
 PersistentListDeque.prototype.size = function() {
     return this.list.size();
-};
-
-PersistentListDeque.prototype.clear = function() {
-    return new PersistentListDeque();
 };
 
 PersistentListDeque.prototype.enqueue = function(obj) {

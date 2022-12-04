@@ -115,13 +115,13 @@ function runAllPersistentDequeTests(dequeConstructor) {
 }
 
 function testPersistentQueueAll() {
-    let constructors = [() => new PersistentQueue(),
+    let constructors = [() => new PersistentLinkedQueue(),
                         () => new PersistentListQueue()];
     return constructors.every(constructor => runAllPersistentQueueTests(constructor));
 }
 
 function testPersistentDequeAll() {
-    let constructors = [() => new PersistentDeque(),
+    let constructors = [() => new PersistentLinkedDeque(),
                         () => new PersistentListDeque()];
     return constructors.every(constructor => runAllPersistentDequeTests(constructor));
 }
