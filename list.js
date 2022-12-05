@@ -33,16 +33,6 @@
 //////////////////////////////////////////////////////////////////////////////
 "use strict";
 
-function mod(number, divisor) {
-    let rem = number % divisor;
-
-    if ( rem !== 0  && (divisor < 0 ? number > 0 : number < 0) ) {
-        return rem + divisor;
-    } else {
-        return rem;
-    }
-}
-
 //
 //     List
 //     

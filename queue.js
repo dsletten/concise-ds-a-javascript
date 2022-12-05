@@ -21,7 +21,7 @@
 //
 //   Example:
 //
-//   Notes:
+//   Notes: Property `front` clashes with `front()` method!!!
 //
 //////////////////////////////////////////////////////////////////////////////
 "use strict";
@@ -136,7 +136,7 @@ Object.defineProperty(ArrayRingBuffer.prototype, "constructor", {enumerable: fal
 ArrayRingBuffer.INITIAL_CAPACITY = 20;
 
 ArrayRingBuffer.prototype.offset = function(i) {
-    return (this.head + i) % this.store.length;
+    return mod(this.head + i, this.store.length);
 };
 
 ArrayRingBuffer.prototype.resize = function() {
@@ -179,7 +179,7 @@ ArrayRingBuffer.prototype.doFront = function() {
 //     LinkedQueue
 //     
 function LinkedQueue() {
-    this.head = null; // `front` clashes with `front()`!!
+    this.head = null;
     this.tail = null;
     this.count = 0;
 }
@@ -558,19 +558,89 @@ Deque.prototype.doRear = function(obj) {
 };
 
 //
+//     ArrayRingBufferDeque (见 Lisp ARRAY-DEQUE)
+//     - Single inheritance precludes much reuse?!
+//
+function ArrayRingBufferDeque() {
+    this.store = new Array(ArrayRingBufferDeque.INITIAL_CAPACITY);
+    this.head = 0;
+    this.count = 0;
+}
+
+ArrayRingBufferDeque.prototype = Object.create(Deque.prototype);
+ArrayRingBufferDeque.prototype.constructor = ArrayRingBufferDeque;
+Object.defineProperty(ArrayRingBufferDeque.prototype, "constructor", {enumerable: false, configurable: false});
+
+ArrayRingBufferDeque.INITIAL_CAPACITY = 20;
+
+ArrayRingBufferDeque.prototype.offset = function(i) {
+    return mod(this.head + i, this.store.length);
+};
+
+ArrayRingBufferDeque.prototype.resize = function() {
+    let newStore = new Array(this.store.length * 2);
+    for (let i = 0; i < this.count; i++) {
+        newStore[i] = this.store[this.offset(i)];
+    }
+
+    this.store = newStore;
+    this.head = 0;
+};
+
+ArrayRingBufferDeque.prototype.size = function() {
+    return this.count;
+};
+
+ArrayRingBufferDeque.prototype.enqueue = function(obj) {
+    if ( this.count === this.store.length ) {
+        this.resize();
+    }
+
+    this.store[this.offset(this.count)] = obj;
+    this.count++;
+};
+
+ArrayRingBufferDeque.prototype.enqueueFront = function(obj) {
+    if ( this.count === this.store.length ) {
+        this.resize();
+    }
+
+    this.head = this.offset(-1);
+    this.store[this.offset(0)] = obj;
+    this.count++;
+};
+
+ArrayRingBufferDeque.prototype.doDequeue = function() {
+    let discard = this.front();
+    this.store[this.head] = null;
+    this.head = this.offset(1);
+    this.count--;
+
+    return discard;
+};
+
+ArrayRingBufferDeque.prototype.doDequeueRear = function() {
+    let discard = this.rear();
+    this.store[this.offset(this.count - 1)] = null;
+    this.count--;
+
+    return discard;
+};
+
+ArrayRingBufferDeque.prototype.doFront = function() {
+    return this.store[this.head];
+};
+
+ArrayRingBufferDeque.prototype.doRear = function() {
+    return this.store[this.offset(this.count - 1)];
+};
+
+//
 //    Doubly-linked-list deque
 //
-// function DllDeque(list) {
-//     this.list = list;
-// }
-
 function DllDeque() {
     this.list = new DoublyLinkedList();
 }
-
-// (defun make-dll-deque (&optional (type t))
-//   (make-instance 'dll-deque :type type :list (make-doubly-linked-list :type type))) ; ??
-// ;  (make-instance 'dll-deque :type type :list (make-doubly-linked-list))) ; ??
 
 DllDeque.prototype = Object.create(Deque.prototype);
 DllDeque.prototype.constructor = DllDeque;
