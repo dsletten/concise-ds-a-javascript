@@ -177,6 +177,32 @@ function testQueueClear(queueConstructor, count = 1000) {
     return true;
 }
 
+function testQueueEnqueue(queueConstructor, count = 1000) {
+    let q = queueConstructor();
+
+    for (let i = 1; i <= count; i++) {
+        q.enqueue(i);
+        let dequeued = q.dequeue();
+        
+        assert(dequeued === i, `Wrong value enqueued: ${dequeued} should be: ${i}`);
+    }
+
+    return true;
+}
+
+function testDequeEnqueueFront(dequeConstructor, count = 1000) {
+    let dq = dequeConstructor();
+
+    for (let i = 1; i <= count; i++) {
+        dq.enqueueFront(i);
+        let dequeued = dq.dequeueRear();
+        
+        assert(dequeued === i, `Wrong value enqueued: ${dequeued} should be: ${i}`);
+    }
+
+    return true;
+}
+
 function testQueueFrontDequeue(queueConstructor, count = 1000) {
     let q = queueConstructor().fill({count: count});
 
@@ -286,6 +312,7 @@ function queueTestSuite(queueConstructor) {
                  testQueueIsEmpty,
                  testQueueSize,
                  testQueueClear,
+                 testQueueEnqueue,
                  testQueueFrontDequeue,
                  testQueueTime,
                  testQueueWave];
@@ -301,6 +328,7 @@ function dequeTestSuite(dequeConstructor) {
     let tests = [testDequeConstructor,
                  testDequeIsEmpty,
                  testDequeSize,
+                 testDequeEnqueueFront,
                  testDequeRearDequeueRear,
                  testDequeTime];
 
