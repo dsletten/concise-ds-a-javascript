@@ -197,7 +197,7 @@ function testDequeEnqueueFront(dequeConstructor, count = 1000) {
         dq.enqueueFront(i);
         let dequeued = dq.dequeueRear();
         
-        assert(dequeued === i, `Wrong value enqueued: ${dequeued} should be: ${i}`);
+        assert(dequeued === i, `Wrong value enqueued at front: ${dequeued} should be: ${i}`);
     }
 
     return true;
