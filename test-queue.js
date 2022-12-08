@@ -341,6 +341,7 @@ function testQueueAll() {
     let constructors = [() => new ArrayQueue(),
                         () => new ArrayRingBuffer(),
                         () => new LinkedQueue(),
+                        () => new LinkedRingBuffer(),
                         () => new LinkedListQueue(),
                         () => new CircularQueue(),
                         () => new HashQueue(),

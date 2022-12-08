@@ -140,13 +140,17 @@ ArrayRingBuffer.prototype.offset = function(i) {
 };
 
 ArrayRingBuffer.prototype.resize = function() {
-    let newStore = new Array(this.store.length * 2);
-    for (let i = 0; i < this.count; i++) {
-        newStore[i] = this.store[this.offset(i)];
+    if ( this.count === this.store.length ) {
+        let newStore = new Array(this.store.length * 2);
+        for (let i = 0; i < this.count; i++) {
+            newStore[i] = this.store[this.offset(i)];
+        }
+        
+        this.store = newStore;
+        this.head = 0;
+    } else {
+        throw new Error("resize() called without full store.");
     }
-
-    this.store = newStore;
-    this.head = 0;
 };
 
 ArrayRingBuffer.prototype.size = function() {
@@ -226,6 +230,59 @@ LinkedQueue.prototype.doDequeue = function() {
 
 LinkedQueue.prototype.doFront = function() {
     return this.head.first();
+};
+
+//
+//     LinkedRingBuffer
+//     
+function LinkedRingBuffer() {
+    LinkedQueue.call(this);
+    this.head = Node.makeList(LinkedRingBuffer.INITIAL_CAPACITY);
+    this.tail = this.head;
+    this.head.last().setRest(this.head);
+}
+
+LinkedRingBuffer.prototype = Object.create(LinkedQueue.prototype);
+LinkedRingBuffer.prototype.constructor = LinkedRingBuffer;
+Object.defineProperty(LinkedRingBuffer.prototype, "constructor", {enumerable: false, configurable: false});
+
+LinkedRingBuffer.INITIAL_CAPACITY = 20;
+
+LinkedRingBuffer.prototype.clear = function() {
+    while ( !this.isEmpty() ) {
+        this.dequeue();
+    }
+};
+
+LinkedRingBuffer.prototype.resize = function() {
+    if ( this.tail.rest() === this.head ) {
+        let more = Node.makeList(this.count + 1);
+        more.last().setRest(this.head);
+        this.tail.setRest(more);
+    } else {
+        throw new Error("resize() called without full store.");
+    }
+};
+
+LinkedRingBuffer.prototype.enqueue = function(obj) {
+    if ( this.tail.rest() === this.head ) {
+        this.resize();
+    }
+    
+    this.tail.setFirst(obj);
+    this.tail = this.tail.rest();
+
+    this.count++;
+};
+
+LinkedRingBuffer.prototype.doDequeue = function() {
+    let discard = this.front();
+
+    this.head.setFirst(null);
+    this.head = this.head.rest();
+    this.count--;
+
+    return discard;
 };
 
 //
@@ -578,13 +635,17 @@ ArrayRingBufferDeque.prototype.offset = function(i) {
 };
 
 ArrayRingBufferDeque.prototype.resize = function() {
-    let newStore = new Array(this.store.length * 2);
-    for (let i = 0; i < this.count; i++) {
-        newStore[i] = this.store[this.offset(i)];
+    if ( this.count === this.store.length ) {
+        let newStore = new Array(this.store.length * 2);
+        for (let i = 0; i < this.count; i++) {
+            newStore[i] = this.store[this.offset(i)];
+        }
+        
+        this.store = newStore;
+        this.head = 0;
+    } else {
+        throw new Error("resize() called without full store.");
     }
-
-    this.store = newStore;
-    this.head = 0;
 };
 
 ArrayRingBufferDeque.prototype.size = function() {

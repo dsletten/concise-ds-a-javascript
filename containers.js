@@ -132,6 +132,15 @@ Node.prototype.exciseChild = function() {
     return child.first();
 };
 
+Node.prototype.last = function() {
+    let node = this;
+    while ( node.rest() != null ) {
+        node = node.rest();
+    }
+
+    return node;
+};
+
 // Node.reverse = function(list) {
 //     function reverse(list, rest) {
 
@@ -313,6 +322,16 @@ Node.append = function(l1, l2) {
 
         return head;
     }
+};
+
+Node.makeList = function(n) {
+    let result = null;
+
+    for (let i = 0; i < n; i++) {
+        result = new Node(null, result);
+    }
+
+    return result;
 };
 
 //
