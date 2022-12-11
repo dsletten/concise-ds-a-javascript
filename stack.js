@@ -40,17 +40,6 @@ Stack.prototype.push = function() {
     throw new Error("Stack does not implement push().");
 };
 
-//
-//    For testing...
-//    
-Stack.prototype.fill = function({count = 1000, generator = x => x} = {}) {
-    for (let i = 1; i <= count; i++) {
-        this.push(generator(i));
-    }
-
-    return this;
-};
-
 Stack.prototype.pop = function() {
     if ( this.isEmpty() ) {
         throw new Error("Stack is empty.");
@@ -73,6 +62,27 @@ Stack.prototype.doPop = function() {
 
 Stack.prototype.doPeek = function() {
     throw new Error("Stack does not implement doPeek().");
+};
+
+//
+//    For testing...
+//    
+Stack.prototype.fill = function({count = 1000, generator = x => x} = {}) {
+    for (let i = 1; i <= count; i++) {
+        this.push(generator(i));
+    }
+
+    return this;
+};
+
+Stack.prototype.elements = function() {
+    let elements = [];
+
+    while ( !this.isEmpty() ) {
+        elements.push(this.pop());
+    }
+
+    return elements;
 };
 
 //
@@ -270,13 +280,16 @@ MapStack.prototype.doPeek = function() {
 //     PersistentStack
 //     
 function PersistentStack() {
-    this.top = null;
-    this.count = 0;
+    throw new Error("Cannot instantiate PersistentStack.");
 }
 
 PersistentStack.prototype = Object.create(Stack.prototype);
 PersistentStack.prototype.constructor = PersistentStack;
 Object.defineProperty(PersistentStack.prototype, "constructor", {enumerable: false, configurable: false});
+
+PersistentStack.prototype.clear = function() {
+    return this.makeEmptyPersistentStack();
+};
 
 PersistentStack.prototype.fill = function({count = 1000, generator = x => x} = {}) {
     let newStack = this;
@@ -285,6 +298,18 @@ PersistentStack.prototype.fill = function({count = 1000, generator = x => x} = {
     }
 
     return newStack;
+};
+
+PersistentStack.prototype.elements = function() {
+    let elements = [];
+    let stack = this;
+
+    while ( !stack.isEmpty() ) {
+        elements.push(stack.peek());
+        stack = stack.pop();
+    }
+
+    return elements;
 };
 
 //
@@ -307,16 +332,16 @@ PersistentLinkedStack.initializeStack = function(top, count) {
     return newStack;
 };
 
+PersistentLinkedStack.prototype.makeEmptyPersistentStack = function() {
+    return new PersistentLinkedStack();
+};
+
 PersistentLinkedStack.prototype.size = function() {
     return this.count;
 };
 
 PersistentLinkedStack.prototype.isEmpty = function() {
     return this.top === null;
-};
-
-PersistentLinkedStack.prototype.clear = function() {
-    return new PersistentLinkedStack();
 };
 
 PersistentLinkedStack.prototype.push = function(obj) {
@@ -352,16 +377,16 @@ PersistentListStack.initializeStack = function(list) {
     return newStack;
 };
 
+PersistentListStack.prototype.makeEmptyPersistentStack = function() {
+    return new PersistentListStack();
+};
+
 PersistentListStack.prototype.size = function() {
     return this.list.size();
 };
 
 PersistentListStack.prototype.isEmpty = function() {
     return this.list.isEmpty();
-};
-
-PersistentListStack.prototype.clear = function() {
-    return new PersistentListStack();
 };
 
 PersistentListStack.prototype.push = function(obj) {

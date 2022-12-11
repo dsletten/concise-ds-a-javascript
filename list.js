@@ -249,6 +249,20 @@ List.prototype.fill = function({count = 1000, generator = x => x} = {}) {
     return this.add(...[...Array(count)].map((_,i) => generator(i+1)));
 };
 
+List.prototype.elements = function() {
+    let elements = [];
+    let i = this.iterator();
+
+    while ( !i.isDone() ) {
+        elements.push(i.current());
+        i.next();
+    }
+
+    this.clear();
+    
+    return elements;
+};
+
 //
 //     MutableList
 //     
@@ -2241,6 +2255,18 @@ PersistentList.prototype.isEmpty = function() {
 
 PersistentList.prototype.clear = function() {
     return new PersistentList(this.fillElt);
+};
+
+PersistentList.prototype.elements = function() {
+    let elements = [];
+    let i = this.iterator();
+
+    while ( !i.isDone() ) {
+        elements.push(i.current());
+        i = i.next();
+    }
+
+    return elements;
 };
 
 PersistentList.prototype.iterator = function() {

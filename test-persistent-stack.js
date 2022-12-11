@@ -116,6 +116,18 @@ function testPersistentStackClear(stackConstructor, count = 1000) {
     return true;
 }
 
+function testPersistentStackElements(stackConstructor, count = 1000) {
+    let s = stackConstructor().fill({count: count});
+    let expected = [...Array(count)].map((_,i) => i + 1).reverse();
+    let elements = s.elements();
+
+    for (let i = 0; i < count; i++) {
+        assert(expected[i] === elements[i], `Element ${i} should be ${expected[i]} not ${elements[i]}.`);
+    }
+
+    return true;
+}
+
 function testPersistentStackPush(stackConstructor, count = 1000) {
     let s = stackConstructor();
 
@@ -126,7 +138,6 @@ function testPersistentStackPush(stackConstructor, count = 1000) {
 
     return true;
 }
-
 
 function testPersistentStackPeekPop(stackConstructor, count = 1000) {
     function testRecursive(s, i) {
@@ -166,6 +177,7 @@ function persistentStackTestSuite(stackConstructor) {
                  testPersistentStackIsEmpty,
                  testPersistentStackSize,
                  testPersistentStackClear,
+                 testPersistentStackElements,
                  testPersistentStackPush,
                  testPersistentStackPeekPop,
                  testPersistentStackTime];

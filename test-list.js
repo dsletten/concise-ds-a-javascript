@@ -77,6 +77,20 @@ function testListSize(listConstructor, count = 1000) {
     }
 
     for (let i = count - 1; i >= 0; i--) {
+        list.delete(-1);
+
+        assertListSize(list, i);
+    }
+
+    assert(list.size() === 0, "Size of empty list should be zero.");
+
+    for (let i = 1; i <= count; i++) {
+        list.insert(0, i);
+
+        assertListSize(list, i);
+    }
+
+    for (let i = count - 1; i >= 0; i--) {
         list.delete(0);
 
         assertListSize(list, i);
@@ -103,6 +117,20 @@ function testListClear(listConstructor, count = 1000) {
     return true;
 }
 
+function testListElements(listConstructor, count = 1000) {
+    let list = listConstructor().fill({count: count});
+    let expected = [...Array(count)].map((_,i) => i + 1);
+    let elements = list.elements();
+
+    for (let i = 0; i < count; i++) {
+        assert(expected[i] === elements[i], `Element ${i} should be ${expected[i]} not ${elements[i]}.`);
+    }
+
+    assert(list.isEmpty(), "Mutable list should be empty after elements are extracted.");
+
+    return true;
+}
+    
 function testListContains(listConstructor, count = 1000) {
     let list = listConstructor().fill({count: count});
     
@@ -328,10 +356,9 @@ function testListDelete(listConstructor, count = 1000) {
     {
         let list = listConstructor().fill({count: count});
 
-        for (let i = count - 1; i >= 0; i--) {
+        for (let i = 1; i <= count; i++) {
             let expected = list.get(0);
             let doomed = list.delete(0);
-            assert(list.size() === i, "List size should reflect deletions");
             assert(doomed === expected, `Incorrect deleted value returned: ${doomed} rather than ${expected}`);
         }
 
@@ -350,18 +377,17 @@ function testListDelete(listConstructor, count = 1000) {
         assert(list.isEmpty(), "Empty list should be empty.");
     }
 
-    return true;
-}
+    {
+        let list = listConstructor().fill({count: count});
 
-function testListDeleteNegativeIndex(listConstructor, count = 1000) {
-    let list = listConstructor().fill({count: count});
-    
-    for (let i = count; i >= 1; i--) {
-        let expected = list.get(-1);
-        assert(list.delete(-1) === expected, "Deleted element should be last in list");
+        for (let i = 1; i <= count; i++) {
+            let expected = list.get(-1);
+            let doomed = list.delete(-1);
+            assert(doomed === expected, `Incorrect deleted value returned: ${doomed} rather than ${expected}`);
+        }
+
+        assert(list.isEmpty(), "Empty list should be empty.");
     }
-    
-    assert(list.isEmpty(), "Empty list should be empty.");
 
     return true;
 }
@@ -385,6 +411,21 @@ function testListDeleteOffset(listConstructor, count = 1000) {
     return true;
 }
 
+function testListDeleteRandom(listConstructor, count = 1000) {
+    let list = listConstructor().fill({count: count});
+
+    for (let i = 1; i <= count; i++) {
+        let j = Math.floor(Math.random() * list.size());
+        let expected = list.get(j);
+        let doomed = list.delete(j);
+        assert(expected === doomed, `Incorrect deleted value returned: ${doomed} rather than ${expected}`);
+    }
+        
+    assert(list.isEmpty(), "Empty list should be empty.");
+
+    return true;
+}
+    
 function testListGet(listConstructor, count = 1000) {
     let list = listConstructor().fill({count: count});
     
@@ -689,6 +730,7 @@ function listTestSuite(listConstructor) {
                  testListIsEmpty,
                  testListSize,
                  testListClear,
+                 testListElements,
                  testListContains,
                  testListContainsPredicate,
                  testListContainsArithmetic,
@@ -704,7 +746,7 @@ function listTestSuite(listConstructor) {
                  testListInsertOffset,
                  testListDelete,
                  testListDeleteOffset,
-                 testListDeleteNegativeIndex,
+                 testListDeleteRandom,
                  testListGet,
                  testListGetNegativeIndex,
                  testListSet,

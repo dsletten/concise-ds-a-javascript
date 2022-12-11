@@ -45,6 +45,13 @@ Container.prototype.clear = function() {
     throw new Error("Container does not implement clear().");
 };
 
+Container.prototype.elements = function() {
+    throw new Error("Container does not implement elements().");
+};
+
+//
+//     Container
+//     
 function Dispenser() {
     throw new Error("Cannot instantiate Dispenser.");
 }

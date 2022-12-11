@@ -139,6 +139,18 @@ function testPersistentQueueClear(queueConstructor, count = 1000) {
     return true;
 }
 
+function testPersistentQueueElements(queueConstructor, count = 1000) {
+    let q = queueConstructor().fill({count: count});
+    let expected = [...Array(count)].map((_,i) => i + 1);
+    let elements = q.elements();
+
+    for (let i = 0; i < count; i++) {
+        assert(expected[i] === elements[i], `Element ${i} should be ${expected[i]} not ${elements[i]}.`);
+    }
+
+    return true;
+}
+
 function testPersistentQueueEnqueue(queueConstructor, count = 1000) {
     let q = queueConstructor();
 
@@ -235,6 +247,7 @@ function persistentQueueTestSuite(queueConstructor) {
                  testPersistentQueueIsEmpty,
                  testPersistentQueueSize,
                  testPersistentQueueClear,
+                 testPersistentQueueElements,
                  testPersistentQueueEnqueue,
                  testPersistentQueueFrontDequeue,
                  testPersistentQueueTime];

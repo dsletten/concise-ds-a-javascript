@@ -60,6 +60,18 @@ function testPersistentListSize(listConstructor, count = 1000) {
     }
 
     for (let i = count - 1; i >= 0; i--) {
+        list = list.delete(-1);
+        assertListSize(list, i);
+    }
+
+    assert(list.size() === 0, "Size of empty list should be zero.");
+
+    for (let i = 1; i <= count; i++) {
+        list = list.insert(0, i);
+        assertListSize(list, i);
+    }
+
+    for (let i = count - 1; i >= 0; i--) {
         list = list.delete(0);
         assertListSize(list, i);
     }
@@ -81,6 +93,18 @@ function testPersistentListClear(listConstructor, count = 1000) {
     list = list.clear();
     assert(list.isEmpty(), "List should be empty.");
     assert(list.size() === 0, "Size of empty list should be zero.");
+
+    return true;
+}
+
+function testPersistentListElements(listConstructor, count = 1000) {
+    let list = listConstructor().fill({count: count});
+    let expected = [...Array(count)].map((_,i) => i + 1);
+    let elements = list.elements();
+
+    for (let i = 0; i < count; i++) {
+        assert(expected[i] === elements[i], `Element ${i} should be ${expected[i]} not ${elements[i]}.`);
+    }
 
     return true;
 }
@@ -316,12 +340,10 @@ function testPersistentListDelete(listConstructor, count = 1000) {
     {
         let list = listConstructor().fill({count: count});
 
-        for (let i = count-1, j = 1; i >= 0; i--, j++) {
-            assert(list.get(0) === j, `Incorrect value at front of list: ${list.get(0)} rather than ${j}`);
-            let next = list.get(1);
+        for (let i = 1; i <= count; i++) {
+            let elt = list.get(0);
+            assert(i === elt, `Incorrect value at front of list: ${elt} rather than ${i}`);
             list = list.delete(0);
-            assert(list.size() === i, "List size should reflect deletions");
-            assert(next === list.get(0), `Incorrect value replaced deleted value: ${next} rather than ${list.get(0)}`);
         }
 
         assert(list.isEmpty(), "Empty list should be empty.");
@@ -330,49 +352,64 @@ function testPersistentListDelete(listConstructor, count = 1000) {
     {
         let list = listConstructor().fill({count: count});
 
-        for (let i = count-1; i >= 1; i--) {
-            let next = list.get(i-1);
-            list = list.delete(i);
-            assert(next === list.get(-1), `Incorrect value replaced deleted value: ${next} rather than ${list.get(-1)}`);
+        for (let i = count; i >= 1; i--) {
+            let elt = list.get(i - 1);
+            assert(i === elt, `Incorrect value at end of list: ${elt} rather than ${i}`);
+            list = list.delete(i - 1);
         }
 
-        assert(list.delete(0).isEmpty(), "Empty list should be empty.");
+        assert(list.isEmpty(), "Empty list should be empty.");
+    }
+
+    {
+        let list = listConstructor().fill({count: count});
+
+        for (let i = count; i >= 1; i--) {
+            let elt = list.get(-1);
+            assert(i === elt, `Incorrect value at end of list: ${elt} rather than ${i}`);
+            list = list.delete(-1);
+        }
+
+        assert(list.isEmpty(), "Empty list should be empty.");
     }
 
     return true;
 }
 
-function testPersistentListDeleteNegativeIndex(listConstructor, count = 1000) {
+// function testPersistentListDeleteOffset(listConstructor, count = 1000) {
+//     let lowIndex = 1;
+//     let highIndex = 3/4 * count;
+//     let list = listConstructor().fill({count: count});
+
+//     list.delete(0);
+//     assert(list.get(0) === 2, `First element should be 2 not ${list.get(0)}.`);
+
+//     list.delete(lowIndex);
+//     assert(list.get(0) === 2, `First element should be 2 not ${list.get(0)}.`);
+//     assert(list.get(lowIndex) === lowIndex + 3, `Element ${lowIndex} should be ${lowIndex + 3} not ${list.get(lowIndex)}.`);
+
+//     list.delete(highIndex);
+//     assert(list.get(0) === 2, `First element should be 2 not ${list.get(0)}.`);
+//     assert(list.get(highIndex) === highIndex + 4, `Element ${highIndex} should be ${highIndex + 4} not ${list.get(highIndex)}.`);
+
+//     return true;
+// }
+
+function testPersistentListDeleteRandom(listConstructor, count = 1000) {
     let list = listConstructor().fill({count: count});
-    
-    for (let i = count; i >= 1; i--) {
-        assert(list.delete(-1) === i, "Deleted element should be last in list");
+
+    for (let i = 1; i <= count; i++) {
+        let j = Math.floor(Math.random() * list.size());
+        let expected = list.get(j);
+        list = list.delete(j);
+        assert(!list.contains(expected), `Element ${j} should have been deleted: ${expected}`);
     }
-    
+        
     assert(list.isEmpty(), "Empty list should be empty.");
 
     return true;
 }
-
-function testPersistentListDeleteOffset(listConstructor, count = 1000) {
-    let lowIndex = 1;
-    let highIndex = 3/4 * count;
-    let list = listConstructor().fill({count: count});
-
-    list.delete(0);
-    assert(list.get(0) === 2, `First element should be 2 not ${list.get(0)}.`);
-
-    list.delete(lowIndex);
-    assert(list.get(0) === 2, `First element should be 2 not ${list.get(0)}.`);
-    assert(list.get(lowIndex) === lowIndex + 3, `Element ${lowIndex} should be ${lowIndex + 3} not ${list.get(lowIndex)}.`);
-
-    list.delete(highIndex);
-    assert(list.get(0) === 2, `First element should be 2 not ${list.get(0)}.`);
-    assert(list.get(highIndex) === highIndex + 4, `Element ${highIndex} should be ${highIndex + 4} not ${list.get(highIndex)}.`);
-
-    return true;
-}
-
+    
 function testPersistentListGet(listConstructor, count = 1000) {
     let list = listConstructor().fill({count: count});
     
@@ -669,22 +706,34 @@ function testPersistentListTime(listConstructor) {
     return true;
 }
 
+function persistentListTestSuite(listConstructor) {
+    console.log(`Testing ${listConstructor().constructor.name}`);
+
+    let tests = [testPersistentListConstructor,
+                 testPersistentListIsEmpty,
+                 testPersistentListSize,
+                 testPersistentListClear,
+                 testPersistentListElements,
+                 testPersistentListContains,
+                 testPersistentListContainsPredicate,
+                 testPersistentListContainsArithmetic,
+                 testPersistentListEquals,
+                 testPersistentListEqualsPredicate,
+                 testPersistentListEqualsTransform,
+                 testPersistentListEach,
+                 testPersistentListAdd,
+                 testPersistentListInsert,
+                 testPersistentListInsertFillZero,
+                 testPersistentListInsertNegativeIndex,
+                 testPersistentListInsertEnd,
+                 testPersistentListDelete,
+                 testPersistentListDeleteRandom];
+
+    assert(!tests.some(test => { console.log(test); return test(listConstructor) === false; }));
+
+    return true;
+}
+
 function testPersistentList() {
-    return testPersistentListConstructor(() => new PersistentList())  &&
-        testPersistentListIsEmpty(() => new PersistentList())  &&
-        testPersistentListSize(() => new PersistentList())  &&
-        testPersistentListClear(() => new PersistentList())  &&
-        testPersistentListContains(() => new PersistentList())  &&
-        testPersistentListContainsPredicate(() => new PersistentList())  &&
-        testPersistentListContainsArithmetic(() => new PersistentList())  &&
-        testPersistentListEquals(() => new PersistentList())  &&
-        testPersistentListEqualsPredicate(() => new PersistentList())  &&
-        testPersistentListEqualsTransform(() => new PersistentList())  &&
-        testPersistentListEach(() => new PersistentList())  &&
-        testPersistentListAdd(() => new PersistentList())  &&
-        testPersistentListInsert(() => new PersistentList())  &&
-        testPersistentListInsertFillZero(fillElt => new PersistentList(fillElt))  &&
-        testPersistentListInsertNegativeIndex(() => new PersistentList())  &&
-        testPersistentListInsertEnd(() => new PersistentList())  &&
-        testPersistentListDelete(() => new PersistentList());
+    return persistentListTestSuite(fillElt => new PersistentList(fillElt));
 }

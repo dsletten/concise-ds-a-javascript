@@ -177,6 +177,20 @@ function testQueueClear(queueConstructor, count = 1000) {
     return true;
 }
 
+function testQueueElements(queueConstructor, count = 1000) {
+    let q = queueConstructor().fill({count: count});
+    let expected = [...Array(count)].map((_,i) => i + 1);
+    let elements = q.elements();
+
+    for (let i = 0; i < count; i++) {
+        assert(expected[i] === elements[i], `Element ${i} should be ${expected[i]} not ${elements[i]}.`);
+    }
+
+    assert(q.isEmpty(), "Mutable queue should be empty after elements are extracted.");
+
+    return true;
+}
+
 function testQueueEnqueue(queueConstructor, count = 1000) {
     let q = queueConstructor();
 
@@ -312,6 +326,7 @@ function queueTestSuite(queueConstructor) {
                  testQueueIsEmpty,
                  testQueueSize,
                  testQueueClear,
+                 testQueueElements,
                  testQueueEnqueue,
                  testQueueFrontDequeue,
                  testQueueTime,
@@ -343,6 +358,7 @@ function testQueueAll() {
                         () => new LinkedQueue(),
                         () => new LinkedRingBuffer(),
                         () => new LinkedListQueue(),
+                        () => new DllQueue(),
                         () => new CircularQueue(),
                         () => new HashQueue(),
                         () => new MapQueue()];

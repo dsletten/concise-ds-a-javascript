@@ -85,6 +85,16 @@ Queue.prototype.fill = function({count = 1000, generator = x => x} = {}) {
     return this;
 };
 
+Queue.prototype.elements = function() {
+    let elements = [];
+
+    while ( !this.isEmpty() ) {
+        elements.push(this.dequeue());
+    }
+
+    return elements;
+};
+
 //
 //     ArrayQueue (见 RubyQueue. Uses built-in array operations)
 //
@@ -121,6 +131,21 @@ ArrayQueue.prototype.doFront = function() {
 };
 
 //
+//     RingBuffer
+//     
+function RingBuffer() {
+    throw new Error("Cannot instantiate RingBuffer.");
+}
+
+RingBuffer.prototype = Object.create(Queue.prototype);
+RingBuffer.prototype.constructor = RingBuffer;
+Object.defineProperty(RingBuffer.prototype, "constructor", {enumerable: false, configurable: false});
+
+RingBuffer.prototype.resize = function() {
+    throw new Error("RingBuffer does not implement resize().");
+};
+
+//
 //     ArrayRingBuffer (见 Lisp ARRAY-QUEUE)
 //
 function ArrayRingBuffer() {
@@ -129,7 +154,7 @@ function ArrayRingBuffer() {
     this.count = 0;
 }
 
-ArrayRingBuffer.prototype = Object.create(Queue.prototype);
+ArrayRingBuffer.prototype = Object.create(RingBuffer.prototype);
 ArrayRingBuffer.prototype.constructor = ArrayRingBuffer;
 Object.defineProperty(ArrayRingBuffer.prototype, "constructor", {enumerable: false, configurable: false});
 
@@ -236,23 +261,27 @@ LinkedQueue.prototype.doFront = function() {
 //     LinkedRingBuffer
 //     
 function LinkedRingBuffer() {
-    LinkedQueue.call(this);
     this.head = Node.makeList(LinkedRingBuffer.INITIAL_CAPACITY);
     this.tail = this.head;
     this.head.last().setRest(this.head);
+    this.count = 0;
 }
 
-LinkedRingBuffer.prototype = Object.create(LinkedQueue.prototype);
+LinkedRingBuffer.prototype = Object.create(RingBuffer.prototype);
 LinkedRingBuffer.prototype.constructor = LinkedRingBuffer;
 Object.defineProperty(LinkedRingBuffer.prototype, "constructor", {enumerable: false, configurable: false});
 
 LinkedRingBuffer.INITIAL_CAPACITY = 20;
 
-LinkedRingBuffer.prototype.clear = function() {
-    while ( !this.isEmpty() ) {
-        this.dequeue();
-    }
+LinkedRingBuffer.prototype.size = function() {
+    return this.count;
 };
+
+// LinkedRingBuffer.prototype.clear = function() {
+//     while ( !this.isEmpty() ) {
+//         this.dequeue();
+//     }
+// };
 
 LinkedRingBuffer.prototype.resize = function() {
     if ( this.tail.rest() === this.head ) {
@@ -285,6 +314,10 @@ LinkedRingBuffer.prototype.doDequeue = function() {
     return discard;
 };
 
+LinkedRingBuffer.prototype.doFront = function() {
+    return this.head.first();
+};
+
 //
 //     LinkedListQueue
 //     
@@ -313,6 +346,37 @@ LinkedListQueue.prototype.doDequeue = function() {
 };
 
 LinkedListQueue.prototype.doFront = function() {
+    return this.list.get(0);
+};
+
+//
+//     DllQueue
+//     
+function DllQueue() {
+    this.list = new DoublyLinkedList();
+}
+
+DllQueue.prototype = Object.create(Queue.prototype);
+DllQueue.prototype.constructor = DllQueue;
+Object.defineProperty(DllQueue.prototype, "constructor", {enumerable: false, configurable: false});
+
+DllQueue.prototype.size = function() {
+    return this.list.size();
+};
+
+DllQueue.prototype.clear = function() {
+    this.list.clear();
+};
+
+DllQueue.prototype.enqueue = function(obj) {
+    this.list.add(obj);
+};
+
+DllQueue.prototype.doDequeue = function() {
+    return this.list.delete(0);
+};
+
+DllQueue.prototype.doFront = function() {
     return this.list.get(0);
 };
 
@@ -482,6 +546,18 @@ PersistentQueue.prototype.fill = function({count = 1000, generator = x => x} = {
     }
 
     return newQueue;
+};
+
+PersistentQueue.prototype.elements = function() {
+    let elements = [];
+    let queue = this;
+
+    while ( !queue.isEmpty() ) {
+        elements.push(queue.front());
+        queue = queue.dequeue();
+    }
+
+    return elements;
 };
 
 //
@@ -720,10 +796,7 @@ DllDeque.prototype.enqueue = function(obj) {
 };
 
 DllDeque.prototype.doDequeue = function() {
-    let discard = this.front();
-    this.list.delete(0);
-
-    return discard;
+    return this.list.delete(0);
 };
 
 DllDeque.prototype.enqueueFront = function(obj) {
@@ -731,10 +804,7 @@ DllDeque.prototype.enqueueFront = function(obj) {
 };
 
 DllDeque.prototype.doDequeueRear = function() {
-    let discard = this.rear();
-    this.list.delete(-1);
-
-    return discard;
+    return this.list.delete(-1);
 };
 
 DllDeque.prototype.doFront = function() {
@@ -914,6 +984,18 @@ PersistentDeque.prototype.fill = function({count = 1000, generator = x => x} = {
     }
 
     return newDeque;
+};
+
+PersistentDeque.prototype.elements = function() {
+    let elements = [];
+    let deque = this;
+
+    while ( !deque.isEmpty() ) {
+        elements.push(deque.front());
+        deque = deque.dequeue();
+    }
+
+    return elements;
 };
 
 //

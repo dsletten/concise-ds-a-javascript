@@ -118,6 +118,20 @@ function testStackClear(stackConstructor, count = 1000) {
     return true;
 }
 
+function testStackElements(stackConstructor, count = 1000) {
+    let s = stackConstructor().fill({count: count});
+    let expected = [...Array(count)].map((_,i) => i + 1).reverse();
+    let elements = s.elements();
+
+    for (let i = 0; i < count; i++) {
+        assert(expected[i] === elements[i], `Element ${i} should be ${expected[i]} not ${elements[i]}.`);
+    }
+
+    assert(s.isEmpty(), "Mutable stack should be empty after elements are extracted.");
+
+    return true;
+}
+
 function testStackPush(stackConstructor, count = 1000) {
     let s = stackConstructor();
 
@@ -214,6 +228,7 @@ function stackTestSuite(stackConstructor) {
                  testStackIsEmpty,
                  testStackSize,
                  testStackClear,
+                 testStackElements,
                  testStackPush,
                  testStackPeekPop,
                  testStackTime,
