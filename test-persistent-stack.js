@@ -105,13 +105,16 @@ function testPersistentStackSize(stackConstructor, count = 1000) {
 // }
 
 function testPersistentStackClear(stackConstructor, count = 1000) {
-    let s = stackConstructor().fill({count: count});
+    let originalStack = stackConstructor().fill({count: count});
 
-    assert(!s.isEmpty(), `Stack should have ${count} elements.`);
+    assert(!originalStack.isEmpty(), `Stack should have ${count} elements.`);
 
-    s = s.clear()
-    assert(s.isEmpty(), "Stack should be empty.");
-    assertStackSize(s, 0);
+    let stack = originalStack.clear();
+    assert(stack.isEmpty(), "Stack should be empty.");
+    assert(!originalStack.isEmpty(), "Original stack is unaffected.");
+    assert(stack !== originalStack, "Cleared stack is new stack.");
+    assert(stack.size() === 0, "Size of empty stack should be zero.");
+    assert(stack === stack.clear(), "Clearing empty stack has no effect.");
 
     return true;
 }
@@ -182,7 +185,7 @@ function persistentStackTestSuite(stackConstructor) {
                  testPersistentStackPeekPop,
                  testPersistentStackTime];
 
-    assert(!tests.some(test => { console.log(test); return test(stackConstructor) === false; }));
+    assert(tests.every(test => { console.log(test); return test(stackConstructor); }));
 
     return true;
 }

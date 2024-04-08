@@ -99,6 +99,8 @@ function testPersistentQueueSize(queueConstructor, count = 1000) {
         assertPersistentQueueSize(q, i);
     }
 
+    assert(q.isEmpty(), "Empty queue should be empty.");
+
     return true;
 }
 
@@ -121,20 +123,25 @@ function testPersistentDequeSize(dequeConstructor, count = 1000) {
         assertPersistentQueueSize(dq, i);
     }
 
+    assert(dq.isEmpty(), "Empty deque should be empty.");
+
     return true;
 }
 
 function testPersistentQueueClear(queueConstructor, count = 1000) {
-    let q = queueConstructor().fill({count: count});
+    let originalQueue = queueConstructor().fill({count: count});
 
-    assert(!q.isEmpty(), `Queue should have ${count} elements.`);
+    assert(!originalQueue.isEmpty(), `Queue should have ${count} elements.`);
 
-    q = q.clear();
-    assert(q.isEmpty(), "Queue should be empty.");
-    assertPersistentQueueSize(q, 0);
+    let queue = originalQueue.clear();
+    assert(queue.isEmpty(), "Queue should be empty.");
+    assert(!originalQueue.isEmpty(), "Original queue is unaffected.");
+    assert(queue !== originalQueue, "Cleared queue is new queue.");
+    assert(queue.size() === 0, "Size of empty queue should be zero.");
+    assert(queue === queue.clear(), "Clearing empty queue has no effect.");
 
-    q = q.fill({count: count});
-    assert(!q.isEmpty(), "Emptying queue should not break it.");
+    queue = queue.fill({count: count});
+    assert(!queue.isEmpty(), "Emptying queue should not break it.");
 
     return true;
 }
@@ -252,7 +259,7 @@ function persistentQueueTestSuite(queueConstructor) {
                  testPersistentQueueFrontDequeue,
                  testPersistentQueueTime];
 
-    assert(!tests.some(test => { console.log(test); return test(queueConstructor) === false; }));
+    assert(tests.every(test => { console.log(test); return test(queueConstructor); }));
 
     return true;
 }
@@ -267,7 +274,7 @@ function persistentDequeTestSuite(dequeConstructor) {
                  testPersistentDequeRearDequeueRear,
                  testPersistentDequeTime];
 
-    assert(!tests.some(test => { console.log(test); return test(dequeConstructor) === false; }));
+    assert(tests.every(test => { console.log(test); return test(dequeConstructor); }));
 
     return true;
 }

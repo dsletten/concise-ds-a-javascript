@@ -141,8 +141,32 @@ RingBuffer.prototype = Object.create(Queue.prototype);
 RingBuffer.prototype.constructor = RingBuffer;
 Object.defineProperty(RingBuffer.prototype, "constructor", {enumerable: false, configurable: false});
 
+RingBuffer.prototype.enqueue = function(obj) {
+    if ( this.isFull() ) {
+        this.resize();
+    }
+
+    this.doEnqueue(obj);
+};
+
 RingBuffer.prototype.resize = function() {
-    throw new Error("RingBuffer does not implement resize().");
+    if ( this.isFull() ) {
+        this.doResize();
+    } else {
+        throw new Error("resize() called without full buffer");
+    }
+};
+
+RingBuffer.prototype.isFull = function() {
+    throw new Error("RingBuffer does not implement isFull().");
+};
+
+RingBuffer.prototype.doEnqueue = function() {
+    throw new Error("RingBuffer does not implement doEnqueue().");
+};
+
+RingBuffer.prototype.doResize = function() {
+    throw new Error("RingBuffer does not implement doResize().");
 };
 
 //
@@ -164,29 +188,25 @@ ArrayRingBuffer.prototype.offset = function(i) {
     return mod(this.head + i, this.store.length);
 };
 
-ArrayRingBuffer.prototype.resize = function() {
-    if ( this.count === this.store.length ) {
-        let newStore = new Array(this.store.length * 2);
-        for (let i = 0; i < this.count; i++) {
-            newStore[i] = this.store[this.offset(i)];
-        }
-        
-        this.store = newStore;
-        this.head = 0;
-    } else {
-        throw new Error("resize() called without full store.");
+ArrayRingBuffer.prototype.isFull = function() {
+    return this.count === this.store.length;
+};
+
+ArrayRingBuffer.prototype.doResize = function() {
+    let newStore = new Array(this.store.length * 2);
+    for (let i = 0; i < this.count; i++) {
+        newStore[i] = this.store[this.offset(i)];
     }
+    
+    this.store = newStore;
+    this.head = 0;
 };
 
 ArrayRingBuffer.prototype.size = function() {
     return this.count;
 };
 
-ArrayRingBuffer.prototype.enqueue = function(obj) {
-    if ( this.count === this.store.length ) {
-        this.resize();
-    }
-
+ArrayRingBuffer.prototype.doEnqueue = function(obj) {
     this.store[this.offset(this.count)] = obj;
     this.count++;
 };
@@ -283,21 +303,17 @@ LinkedRingBuffer.prototype.size = function() {
 //     }
 // };
 
-LinkedRingBuffer.prototype.resize = function() {
-    if ( this.tail.rest() === this.head ) {
-        let more = Node.makeList(this.count + 1);
-        more.last().setRest(this.head);
-        this.tail.setRest(more);
-    } else {
-        throw new Error("resize() called without full store.");
-    }
+LinkedRingBuffer.prototype.isFull = function() {
+    return this.tail.rest() === this.head;
 };
 
-LinkedRingBuffer.prototype.enqueue = function(obj) {
-    if ( this.tail.rest() === this.head ) {
-        this.resize();
-    }
-    
+LinkedRingBuffer.prototype.doResize = function() {
+    let more = Node.makeList(this.count + 1);
+    more.last().setRest(this.head);
+    this.tail.setRest(more);
+};
+
+LinkedRingBuffer.prototype.doEnqueue = function(obj) {
     this.tail.setFirst(obj);
     this.tail = this.tail.rest();
 
@@ -536,7 +552,11 @@ PersistentQueue.prototype.constructor = PersistentQueue;
 Object.defineProperty(PersistentQueue.prototype, "constructor", {enumerable: false, configurable: false});
 
 PersistentQueue.prototype.clear = function() {
-    return this.makeEmptyPersistentQueue();
+    if ( this.isEmpty() ) {
+        return this;
+    } else {
+        return this.makeEmptyPersistentQueue();
+    }
 };
 
 PersistentQueue.prototype.fill = function({count = 1000, generator = x => x} = {}) {
@@ -693,6 +713,7 @@ Deque.prototype.doRear = function(obj) {
 //
 //     ArrayRingBufferDeque (见 Lisp ARRAY-DEQUE)
 //     - Single inheritance precludes much reuse?!
+//     - No actual connection to RingBuffer...
 //
 function ArrayRingBufferDeque() {
     this.store = new Array(ArrayRingBufferDeque.INITIAL_CAPACITY);
@@ -710,38 +731,62 @@ ArrayRingBufferDeque.prototype.offset = function(i) {
     return mod(this.head + i, this.store.length);
 };
 
-ArrayRingBufferDeque.prototype.resize = function() {
-    if ( this.count === this.store.length ) {
-        let newStore = new Array(this.store.length * 2);
-        for (let i = 0; i < this.count; i++) {
-            newStore[i] = this.store[this.offset(i)];
-        }
-        
-        this.store = newStore;
-        this.head = 0;
-    } else {
-        throw new Error("resize() called without full store.");
+//
+//    These must be copied from RingBuffer!
+//
+// ArrayRingBufferDeque.prototype.enqueue = function(obj) {
+//     if ( this.isFull() ) {
+//         this.resize();
+//     }
+
+//     this.doEnqueue(obj);
+// };
+
+// ArrayRingBufferDeque.prototype.resize = function() {
+//     if ( this.isFull() ) {
+//         this.doResize();
+//     } else {
+//         throw new Error("resize() called without full buffer");
+//     }
+// };
+// 
+// 
+//    ArrayRingBuffer is not a class! Add methods from another prototype:
+ArrayRingBufferDeque.prototype.enqueue = RingBuffer.prototype.enqueue
+ArrayRingBufferDeque.prototype.resize = RingBuffer.prototype.resize
+
+ArrayRingBufferDeque.prototype.enqueueFront = function(obj) {
+    if ( this.isFull() ) {
+        this.resize();
     }
+
+    this.doEnqueueFront(obj);
+};
+
+ArrayRingBufferDeque.prototype.isFull = function() {
+    return this.count === this.store.length;
+};
+
+ArrayRingBufferDeque.prototype.doResize = function() {
+    let newStore = new Array(this.store.length * 2);
+    for (let i = 0; i < this.count; i++) {
+        newStore[i] = this.store[this.offset(i)];
+    }
+    
+    this.store = newStore;
+    this.head = 0;
 };
 
 ArrayRingBufferDeque.prototype.size = function() {
     return this.count;
 };
 
-ArrayRingBufferDeque.prototype.enqueue = function(obj) {
-    if ( this.count === this.store.length ) {
-        this.resize();
-    }
-
+ArrayRingBufferDeque.prototype.doEnqueue = function(obj) {
     this.store[this.offset(this.count)] = obj;
     this.count++;
 };
 
-ArrayRingBufferDeque.prototype.enqueueFront = function(obj) {
-    if ( this.count === this.store.length ) {
-        this.resize();
-    }
-
+ArrayRingBufferDeque.prototype.doEnqueueFront = function(obj) {
     this.head = this.offset(-1);
     this.store[this.offset(0)] = obj;
     this.count++;
@@ -770,6 +815,61 @@ ArrayRingBufferDeque.prototype.doFront = function() {
 
 ArrayRingBufferDeque.prototype.doRear = function() {
     return this.store[this.offset(this.count - 1)];
+};
+
+//
+//     ArrayRingBufferDequeX
+//     - Design exercise in composition
+//     - Must violate encapsulation of contained ArrayRingBuffer????
+//
+function ArrayRingBufferDequeX() {
+    this.ringBuffer = new ArrayRingBuffer();
+}
+
+ArrayRingBufferDequeX.prototype = Object.create(Deque.prototype);
+ArrayRingBufferDequeX.prototype.constructor = ArrayRingBufferDequeX;
+Object.defineProperty(ArrayRingBufferDequeX.prototype, "constructor", {enumerable: false, configurable: false});
+
+ArrayRingBufferDequeX.prototype.size = function() {
+    return this.ringBuffer.size();
+};
+
+ArrayRingBufferDequeX.prototype.enqueue = function(obj) {
+    this.ringBuffer.enqueue(obj);
+};
+
+ArrayRingBufferDequeX.prototype.enqueueFront = function(obj) {
+    let rb = this.ringBuffer;
+    if ( rb.isFull() ) { //  ???
+        rb.resize();
+    }
+
+    rb.head = rb.offset(-1);
+    rb.store[rb.offset(0)] = obj;
+    rb.count++;
+};
+
+ArrayRingBufferDequeX.prototype.doDequeue = function() {
+    return this.ringBuffer.dequeue();
+};
+
+ArrayRingBufferDequeX.prototype.doDequeueRear = function() {
+    let rb = this.ringBuffer;
+    let discard = this.rear();
+
+    rb.store[rb.offset(rb.count - 1)] = null;
+    rb.count--;
+
+    return discard;
+};
+
+ArrayRingBufferDequeX.prototype.doFront = function() {
+    return this.ringBuffer.front();
+};
+
+ArrayRingBufferDequeX.prototype.doRear = function() {
+    let rb = this.ringBuffer;
+    return rb.store[rb.offset(rb.count - 1)];
 };
 
 //
@@ -973,7 +1073,11 @@ PersistentDeque.prototype.constructor = PersistentDeque;
 Object.defineProperty(PersistentDeque.prototype, "constructor", {enumerable: false, configurable: false});
 
 PersistentDeque.prototype.clear = function() {
-    return this.makeEmptyPersistentDeque();
+    if ( this.isEmpty() ) {
+        return this;
+    } else {
+        return this.makeEmptyPersistentDeque();
+    }
 };
 
 //    Use PersistentQueue's fill()??

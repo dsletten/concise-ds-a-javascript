@@ -179,7 +179,7 @@ function testStackTime(stackConstructor, count = 100000) {
 
 //    let end = Date.now();
 
-    console.log(`Elapsed time: ${performance.now() - start}`);
+    console.log(`Elapsed time: ${performance.now() - start}\n`);
 //    console.log("Elapsed time: " + (end - start));
 
     return true;
@@ -193,6 +193,7 @@ function emptyStack(s, count = s.size()) {
 
 function testStackWave(stackConstructor) {
     let s = stackConstructor();
+    let start = performance.now();
 
     s.fill({count: 5000});
     assertStackSize(s, 5000);
@@ -218,6 +219,8 @@ function testStackWave(stackConstructor) {
     emptyStack(s, 10000);
     assert(s.isEmpty(), "Stack should be empty.");
 
+    console.log(`Elapsed time: ${performance.now() - start}\n`);
+
     return true;
 }
 
@@ -234,7 +237,7 @@ function stackTestSuite(stackConstructor) {
                  testStackTime,
                  testStackWave];
 
-    assert(!tests.some(test => { console.log(test); return test(stackConstructor) === false; }));
+    assert(tests.every(test => { console.log(test); return test(stackConstructor); }));
 
     return true;
 }

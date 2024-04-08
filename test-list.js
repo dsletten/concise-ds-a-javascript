@@ -252,7 +252,6 @@ function testListAdd(listConstructor, count = 1000) {
     for (let i = 1; i <= count; i++) {
         list.add(i);
 
-        assert(list.size() === i, `Size of list should be ${i} not ${list.size()}`);
         assert(list.get(-1) === i, `Last element of list should be ${i} not ${list.get(-1)}`);
     }
 
@@ -269,7 +268,7 @@ function testListInsert(listConstructor, fillElt = null) {
 
     assert(list.size() === count, "Insert should extend list.");
     assert(list.get(count-1) === elt1, `Inserted element should be '${elt1}'.`);
-    assert(list.get(0) === fillElt, `Empty elements should be filled with ${fillElt}`);
+    assert(list.slice(0, count-1).elements().every(elt => elt === fillElt), `Empty elements should be filled with ${fillElt}`);
 
     list.insert(0, elt2);
     
@@ -483,7 +482,7 @@ function testListSetOutOfBounds(listConstructor) {
 
     list.set(index, elt);
 
-    assert(list.get(0) === list.fillElt, `Empty elements should be filled with ${list.fillElt}`);
+    assert(list.slice(0, index).elements().every(elt => elt === list.fillElt), `Empty elements should be filled with ${list.fillElt}`);
     assert(list.size() === index + 1, "List should expand to accommodate out-of-bounds index.");
     assert(list.get(index) === elt, `Element ${index} should be: ${elt}.`);
 
@@ -582,11 +581,7 @@ function testListSliceCornerCases(listConstructor, count = 1000) {
 function testListReverse(listConstructor, count = 1000) {
     let original = listConstructor().fill({count: count});
     let backward = original.reverse();
-    let expected = listConstructor();
-
-    for (let i = count; i >= 1; i--) {
-        expected.add(i);
-    }
+    let expected = listConstructor().fill({count: count, generator: i => count - i + 1});
 
     assert(expected.equals(backward), `Reversed list should be: ${expected.slice(0, 20)} instead of: ${backward.slice(0, 20)}`);
 
@@ -596,6 +591,39 @@ function testListReverse(listConstructor, count = 1000) {
     return true;
 }
 
+function testListAppend(listConstructor, count = 1000) {
+    let list1 = listConstructor().fill({count: count});
+    let list2 = listConstructor().fill({count: count});
+    let list3 = list1.append(list2);
+    let list4 = list2.append(list1);
+    let listX = listConstructor();
+
+    assert(list3.size() === list1.size() + list2.size(), "Result list should have same size as sum of input sizes");
+    assert(list4.size() === list1.size() + list2.size(), "Result list should have same size as sum of input sizes");
+
+    assert(list1.equals(list3.slice(0, count)), "Front of list3 should match list1");
+    assert(list2.equals(list4.slice(0, count)), "Front of list4 should match list2");
+    assert(list2.equals(list3.slice(count, count)), "Rear of list3 should match list2");
+    assert(list1.equals(list4.slice(count, count)), "Rear of list4 should match list1");
+
+    assert(list1.equals(list1.append(listX)), "Appending empty list yields equal list");
+    assert(list1.equals(listX.append(list1)), "Appending empty list yields equal list");
+
+    return true;
+}
+
+function testListAppendDifferentConstructor(listConstructor, count = 1000) {
+    let list = listConstructor().fill({count: count});
+    let arrayList = new ArrayList().fill({count: count});
+    let doublyLinkedList = new DoublyLinkedList().fill({count: count});
+
+    assert(list.constructor === list.append(arrayList).constructor, "Appending list yields instance of same constructor as first list.");
+    assert(list.constructor === list.append(doublyLinkedList).constructor, "Appending list yields instance of same constructor as first list.");
+    assert(list.constructor === list.append(arrayList.append(doublyLinkedList)).constructor, "Appending list yields instance of same constructor as first list.");
+
+    return true;
+}
+    
 function testListTime(listConstructor) {
     console.log();
     {
@@ -723,6 +751,45 @@ function testListTime(listConstructor) {
     return true;
 }
 
+function emptyList(list, count = list.size()) {
+    for (let i = 0; i < count; i++) {
+        list.delete(0);
+    }
+}
+
+function testListWave(listConstructor) {
+    let list = listConstructor();
+    let start = performance.now();
+
+    list.fill({count: 5000});
+    assertListSize(list, 5000);
+
+    emptyList(list, 3000);
+    assertListSize(list, 2000);
+
+    list.fill({count: 5000});
+    assertListSize(list, 7000);
+
+    emptyList(list, 3000);
+    assertListSize(list, 4000);
+
+    list.fill({count: 5000});
+    assertListSize(list, 9000);
+
+    emptyList(list, 3000);
+    assertListSize(list, 6000);
+
+    list.fill({count: 4000});
+    assertListSize(list, 10000);
+
+    emptyList(list, 10000);
+    assert(list.isEmpty(), "List should be empty.");
+
+    console.log(`Elapsed time: ${performance.now() - start}\n`);
+
+    return true;
+}
+
 function listTestSuite(listConstructor) {
     console.log(`Testing ${listConstructor().constructor.name}`);
 
@@ -759,9 +826,12 @@ function listTestSuite(listConstructor) {
                  testListSliceNegativeIndex,
                  testListSliceCornerCases,
                  testListReverse,
-                 testListTime];
+                 testListAppend,
+                 testListAppendDifferentConstructor,
+                 testListTime,
+                 testListWave];
 
-    assert(!tests.some(test => { console.log(test); return test(listConstructor) === false; }));
+    assert(tests.every(test => { console.log(test); return test(listConstructor); }));
 
     return true;
 }

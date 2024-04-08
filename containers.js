@@ -33,6 +33,10 @@ function Container() {
     throw new Error("Cannot instantiate Container.");
 }
 
+//    Necessary?
+Container.prototype.constructor = Container;
+Object.defineProperty(Container.prototype, "constructor", {enumerable: false, configurable: false});
+
 Container.prototype.isEmpty = function() {
     throw new Error("Container does not implement isEmpty().");
 };
@@ -42,7 +46,13 @@ Container.prototype.size = function() {
 };
 
 Container.prototype.clear = function() {
-    throw new Error("Container does not implement clear().");
+    if ( !this.isEmpty() ) {
+        this.doClear();
+    }
+};
+
+Container.prototype.doClear = function() {
+    throw new Error("Container does not implement doClear().");
 };
 
 Container.prototype.elements = function() {
@@ -77,11 +87,11 @@ Node.prototype.rest = function() {
 };
 
 Node.prototype.setFirst = function(head) {
-    this.head = head;
+    return this.head = head;
 };
 
 Node.prototype.setRest = function(tail) {
-    this.tail = tail;
+    return this.tail = tail;
 };
     
 Node.prototype.toString = function() {
@@ -109,8 +119,7 @@ Node.prototype.spliceBefore = function(obj) {
 };
 
 Node.prototype.spliceAfter = function(obj) {
-    let tail = new Node(obj, this.rest());
-    this.setRest(tail);
+    this.setRest(new Node(obj, this.rest()));
 };
 
 Node.prototype.exciseNode = function() {
@@ -134,9 +143,9 @@ Node.prototype.exciseChild = function() {
         throw new Error("Parent must have child node");
     } else {
         this.setRest(child.rest());
-    }
 
-    return child.first();
+        return child.first();
+    }
 };
 
 Node.prototype.last = function() {
@@ -241,7 +250,7 @@ Node.nthCdr = function(node, i) {
     
     let j = 0;
 
-    while ( j !== i ) {
+    while ( j < i ) {
         if ( node === null ) {
             return null;
         }

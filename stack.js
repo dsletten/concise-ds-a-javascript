@@ -104,7 +104,7 @@ ArrayStack.prototype.isEmpty = function() {
     return this.store.length === 0;
 };
 
-ArrayStack.prototype.clear = function() {
+ArrayStack.prototype.doClear = function() {
     this.store = [];
 };
 
@@ -140,7 +140,7 @@ LinkedStack.prototype.isEmpty = function() {
     return this.top === null;
 };
 
-LinkedStack.prototype.clear = function() {
+LinkedStack.prototype.doClear = function() {
     this.top = null;
     this.count = 0;
 };
@@ -181,7 +181,7 @@ LinkedListStack.prototype.isEmpty = function() {
     return this.list.isEmpty();
 };
 
-LinkedListStack.prototype.clear = function() {
+LinkedListStack.prototype.doClear = function() {
     this.list.clear();
 };
 
@@ -217,7 +217,7 @@ HashStack.prototype.isEmpty = function() {
     return this.count === 0;
 };
 
-HashStack.prototype.clear = function() {
+HashStack.prototype.doClear = function() {
     this.store = {};
     this.count = 0;
 };
@@ -257,7 +257,7 @@ MapStack.prototype.isEmpty = function() {
     return this.size() === 0;
 };
 
-MapStack.prototype.clear = function() {
+MapStack.prototype.doClear = function() {
     this.store.clear();
 };
 
@@ -288,7 +288,11 @@ PersistentStack.prototype.constructor = PersistentStack;
 Object.defineProperty(PersistentStack.prototype, "constructor", {enumerable: false, configurable: false});
 
 PersistentStack.prototype.clear = function() {
-    return this.makeEmptyPersistentStack();
+    if ( this.isEmpty() ) {
+        return this;
+    } else {
+        return this.makeEmptyPersistentStack();
+    }
 };
 
 PersistentStack.prototype.fill = function({count = 1000, generator = x => x} = {}) {

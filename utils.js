@@ -40,3 +40,6 @@ function mod(number, divisor) {
     }
 }
 
+function isBetweenInclusive(i, low, high) {
+    return low <= i  &&  i <= high;
+}

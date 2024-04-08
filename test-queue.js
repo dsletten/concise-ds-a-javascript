@@ -142,6 +142,13 @@ function testQueueSize(queueConstructor, count = 1000) {
         assertQueueSize(q, i);
     }
 
+    for (let i = count-1; i >= 0; i--) {
+        q.dequeue();
+        assertQueueSize(q, i);
+    }
+
+    assert(q.isEmpty(), "Empty queue should be empty.");
+
     return true;
 }
 
@@ -158,6 +165,13 @@ function testDequeSize(dequeConstructor, count = 1000) {
         dq.enqueueFront(i);
         assertQueueSize(dq, i);
     }
+
+    for (let i = count-1; i >= 0; i--) {
+        dq.dequeueRear();
+        assertQueueSize(dq, i);
+    }
+
+    assert(dq.isEmpty(), "Empty deque should be empty.");
 
     return true;
 }
@@ -259,7 +273,7 @@ function testQueueTime(queueConstructor, count = 100000) {
         }
     }
 
-    console.log(`Elapsed time: ${performance.now() - start}`);
+    console.log(`Elapsed time: ${performance.now() - start}\n`);
 
     return true;
 }
@@ -278,7 +292,7 @@ function testDequeTime(dequeConstructor, count = 100000) {
         }
     }
 
-    console.log(`Elapsed time: ${performance.now() - start}`);
+    console.log(`Elapsed time: ${performance.now() - start}\n`);
 
     return true;
 }
@@ -291,6 +305,7 @@ function emptyQueue(q, count = q.size()) {
 
 function testQueueWave(queueConstructor) {
     let q = queueConstructor();
+    let start = performance.now();
 
     q.fill({count: 5000});
     assertQueueSize(q, 5000);
@@ -316,6 +331,8 @@ function testQueueWave(queueConstructor) {
     emptyQueue(q, 10000);
     assert(q.isEmpty(), "Queue should be empty.");
 
+    console.log(`Elapsed time: ${performance.now() - start}\n`);
+
     return true;
 }
 
@@ -332,7 +349,7 @@ function queueTestSuite(queueConstructor) {
                  testQueueTime,
                  testQueueWave];
 
-    assert(!tests.some(test => { console.log(test); return test(queueConstructor) === false; }));
+    assert(tests.every(test => { console.log(test); return test(queueConstructor); }));
 
     return true;
 }
@@ -347,7 +364,7 @@ function dequeTestSuite(dequeConstructor) {
                  testDequeRearDequeueRear,
                  testDequeTime];
 
-    assert(!tests.some(test => { console.log(test); return test(dequeConstructor) === false; }));
+    assert(tests.every(test => { console.log(test); return test(dequeConstructor); }));
 
     return true;
 }
@@ -367,6 +384,7 @@ function testQueueAll() {
 
 function testDequeAll() {
     let constructors = [() => new ArrayRingBufferDeque(),
+                        () => new ArrayRingBufferDequeX(),
                         () => new DllDeque(),
                         () => new HashDeque(),
                         () => new MapDeque()];

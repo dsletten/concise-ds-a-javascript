@@ -86,13 +86,16 @@ function assertListSize(l, n) {
 }
 
 function testPersistentListClear(listConstructor, count = 1000) {
-    let list = listConstructor().fill({count: count});
+    let originalList = listConstructor().fill({count: count});
 
-    assert(!list.isEmpty(), `List should have ${count} elements.`);
+    assert(!originalList.isEmpty(), `List should have ${count} elements.`);
 
-    list = list.clear();
+    let list = originalList.clear();
     assert(list.isEmpty(), "List should be empty.");
+    assert(!originalList.isEmpty(), "Original list is unaffected.");
+    assert(list !== originalList, "Cleared list is new list.");
     assert(list.size() === 0, "Size of empty list should be zero.");
+    assert(list === list.clear(), "Clearing empty list has no effect.");
 
     return true;
 }
@@ -255,7 +258,7 @@ function testPersistentListInsert(listConstructor, fillElt = null) {
 
     assert(list.size() === count, "Insert should extend list.");
     assert(list.get(count-1) === elt1, `Inserted element should be '${elt1}'.`);
-    assert(list.get(0) === fillElt, `Empty elements should be filled with ${fillElt}`);
+    assert(list.slice(0, count-1).elements().every(elt => elt === fillElt), `Empty elements should be filled with ${fillElt}`);
 
     list = list.insert(0, elt2);
     
@@ -432,10 +435,10 @@ function testPersistentListGetNegativeIndex(listConstructor, count = 1000) {
 
 function testPersistentListSet(listConstructor, count = 1000) {
     let list = listConstructor();
-    
+
     for (let i = 0; i <= count; i++) {
         assert(list.size() === i, `Prior to set() size should be ${i} not ${list.size()}`);
-        list.set(i, i);
+        list = list.set(i, i);
         assert(list.size() === i+1, `After set() size should be ${i+1} not ${list.size()}`);
     }
 
@@ -450,7 +453,7 @@ function testPersistentListSetNegativeIndex(listConstructor, count = 1000) {
     let list = listConstructor().fill({count: count});
     
     for (let i = -1; i >= -count; i--) {
-        list.set(i, i);
+        list = list.set(i, i);
     }
 
     for (let i = 0; i < count; i++) {
@@ -465,9 +468,9 @@ function testPersistentListSetOutOfBounds(listConstructor) {
     let index = 10;
     let elt = "foo";
 
-    list.set(index, elt);
+    list = list.set(index, elt);
 
-    assert(list.get(0) === list.fillElt, `Empty elements should be filled with ${list.fillElt}`);
+    assert(list.slice(0, index).elements().every(elt => elt === list.fillElt), `Empty elements should be filled with ${list.fillElt}`);
     assert(list.size() === index + 1, "List should expand to accommodate out-of-bounds index.");
     assert(list.get(index) === elt, `Element ${index} should be: ${elt}.`);
 
@@ -565,16 +568,45 @@ function testPersistentListSliceCornerCases(listConstructor, count = 1000) {
 function testPersistentListReverse(listConstructor, count = 1000) {
     let original = listConstructor().fill({count: count});
     let backward = original.reverse();
-    let expected = listConstructor();
-
-    for (let i = count; i >= 1; i--) {
-        expected.add(i);
-    }
+    let expected = listConstructor().fill({count: count, generator: i => count - i + 1});
 
     assert(expected.equals(backward), `Reversed list should be: ${expected.slice(0, 20)} instead of: ${backward.slice(0, 20)}`);
 
     let forward = backward.reverse();
     assert(original.equals(forward), `Reversed reversed should be: ${original.slice(0, 20)} instead of: ${forward.slice(0, 20)}`);
+
+    return true;
+}
+
+function testPersistentListAppend(listConstructor, count = 1000) {
+    let list1 = listConstructor().fill({count: count});
+    let list2 = listConstructor().fill({count: count});
+    let list3 = list1.append(list2);
+    let list4 = list2.append(list1);
+    let listX = listConstructor();
+
+    assert(list3.size() === list1.size() + list2.size(), "Result list should have same size as sum of input sizes");
+    assert(list4.size() === list1.size() + list2.size(), "Result list should have same size as sum of input sizes");
+
+    assert(list1.equals(list3.slice(0, count)), "Front of list3 should match list1");
+    assert(list2.equals(list4.slice(0, count)), "Front of list4 should match list2");
+    assert(list2.equals(list3.slice(count, count)), "Rear of list3 should match list2");
+    assert(list1.equals(list4.slice(count, count)), "Rear of list4 should match list1");
+
+    assert(list1.equals(list1.append(listX)), "Appending empty list yields equal list");
+    assert(list1.equals(listX.append(list1)), "Appending empty list yields equal list");
+
+    return true;
+}
+
+function testPersistentListAppendDifferentConstructor(listConstructor, count = 1000) {
+    let list = listConstructor().fill({count: count});
+    let arrayList = new ArrayList().fill({count: count});
+    let doublyLinkedList = new DoublyLinkedList().fill({count: count});
+
+    assert(list.constructor === list.append(arrayList).constructor, "Appending list yields instance of same constructor as first list.");
+    assert(list.constructor === list.append(doublyLinkedList).constructor, "Appending list yields instance of same constructor as first list.");
+    assert(list.constructor === list.append(arrayList.append(doublyLinkedList)).constructor, "Appending list yields instance of same constructor as first list.");
 
     return true;
 }
@@ -589,9 +621,9 @@ function testPersistentListTime(listConstructor) {
         let start = performance.now();
         for (let i = 0; i < 10; i++) {
             for (let j = 0; j < 10000; j++) {
-                list.insert(0, j);
+                list = list.insert(0, j);
             }
-            list.clear();
+            list = list.clear();
         }
         console.log(`Elapsed time: ${performance.now() - start}`);
     }
@@ -603,9 +635,9 @@ function testPersistentListTime(listConstructor) {
         let start = performance.now();
         for (let i = 0; i < 10; i++) {
             for (let j = 0; j < 10000; j++) {
-                list.add(j);
+                list = list.add(j);
             }
-            list.clear();
+            list = list.clear();
         }
         console.log(`Elapsed time: ${performance.now() - start}`);
     }
@@ -616,11 +648,11 @@ function testPersistentListTime(listConstructor) {
         console.log("Insert at random index.");
         let start = performance.now();
         for (let i = 0; i < 10; i++) {
-            list.add(null);
+            list = list.add(null);
             for (let j = 0; j < 10000; j++) {
-                list.insert(Math.floor(Math.random() * list.size()), j);
+                list = list.insert(Math.floor(Math.random() * list.size()), j);
             }
-            list.clear();
+            list = list.clear();
         }
         console.log(`Elapsed time: ${performance.now() - start}`);
     }
@@ -631,9 +663,9 @@ function testPersistentListTime(listConstructor) {
         console.log("Delete from front of list.");
         let start = performance.now();
         for (let i = 0; i < 10; i++) {
-            list.fill({count: 10000});
+            list = list.fill({count: 10000});
             while ( !list.isEmpty() ) {
-                list.delete(0);
+                list = list.delete(0);
             }
         }
         console.log(`Elapsed time: ${performance.now() - start}`);
@@ -645,9 +677,9 @@ function testPersistentListTime(listConstructor) {
         console.log("Delete from end of list.");
         let start = performance.now();
         for (let i = 0; i < 10; i++) {
-            list.fill({count: 10000});
+            list = list.fill({count: 10000});
             while ( !list.isEmpty() ) {
-                list.delete(-1);
+                list = list.delete(-1);
             }
         }
         console.log(`Elapsed time: ${performance.now() - start}`);
@@ -659,11 +691,11 @@ function testPersistentListTime(listConstructor) {
         console.log("Delete from random index.");
         let start = performance.now();
         for (let i = 0; i < 10; i++) {
-            list.fill({count: 10000});
+            list = list.fill({count: 10000});
             for (let j = 0; j < 10000; j++) {
                 try {
                     var index = Math.floor(Math.random() * list.size());
-                    list.delete(index);
+                    list = list.delete(index);
                 } catch (e) {
                     console.log(index);
                     console.log(`i: ${i} j: ${j} ${e}`);
@@ -727,9 +759,24 @@ function persistentListTestSuite(listConstructor) {
                  testPersistentListInsertNegativeIndex,
                  testPersistentListInsertEnd,
                  testPersistentListDelete,
-                 testPersistentListDeleteRandom];
+                 testPersistentListDeleteRandom,
+                 testPersistentListGet,
+                 testPersistentListGetNegativeIndex,
+                 testPersistentListSet,
+                 testPersistentListSetNegativeIndex,
+                 testPersistentListSetOutOfBounds,
+                 testPersistentListIndex,
+                 testPersistentListIndexPredicate,
+                 testPersistentListIndexArithmetic,
+                 testPersistentListSlice,
+                 testPersistentListSliceNegativeIndex,
+                 testPersistentListSliceCornerCases,
+                 testPersistentListReverse,
+                 testPersistentListAppend,
+                 testPersistentListAppendDifferentConstructor,
+                 testPersistentListTime];
 
-    assert(!tests.some(test => { console.log(test); return test(listConstructor) === false; }));
+    assert(tests.every(test => { console.log(test); return test(listConstructor); }));
 
     return true;
 }
