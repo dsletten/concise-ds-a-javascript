@@ -21,7 +21,7 @@
 //
 //   Example:
 //
-//   Notes:
+//   Notes: load mod() from utils.js
 //
 //////////////////////////////////////////////////////////////////////////////
 "use strict";
@@ -36,7 +36,7 @@ Object.defineProperty(Counter.prototype, "constructor", {enumerable: false, conf
 // Counter.prototype.toString = () => `[${this.index()}/${this.modulus()}]`;
 //'[undefined/undefined]'    ?!?!??!?!
 Counter.prototype.toString = function() {
-    return `[${this.index()}/${this.modulus()}]`;
+    return `${this.constructor.name} [${this.index()}/${this.modulus()}]`;
 };
 
 Counter.prototype.index = function() {
