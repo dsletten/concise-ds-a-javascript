@@ -112,5 +112,5 @@ function persistentCyclicCounterTestSuite() {
                  testPersistentCounterReset,
                  testPersistentCounterRollover];
 
-    assert(tests.every(test => { console.log(test); return test(); }));
+    return tests.every(test => { console.log(test); return test(); });
 }

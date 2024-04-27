@@ -26,37 +26,31 @@
 //////////////////////////////////////////////////////////////////////////////
 "use strict";
 
-function YFI(x, y, z) {
-    function srsly() {
-        throw new Error("SRSLY?.");
+function YFI(length = 0) {
+    if ( length < 0 ) {
+        throw new Error("Length must be non-negative.");
+    } else {
+        this.len = length;
     }
+}
 
-    function bad() {
-        throw new Error("Length components must be non-negative.");
+YFI.makeYFI = function({yards = 0, feet = 0, inches = 0} = {}) {
+    function isValidInteger(x) {
+        return x >= 0  &&  x % 1 === 0;
     }
     
-    //
-    //     Some pathological cases can circumvent this logic, e.g.,
-    //     new YFI(undefined, undefined, 8)
-    //     
-    if ( x === undefined ) {
-        srsly();
-    } else if ( x < 0 ) {
-        bad();
-    } else if ( y === undefined ) {
-        if ( x instanceof YFI ) {
-            return x;
-        } else {
-            this.len = x;
-        }
-    } else if ( y < 0 ) {
-        bad();
-    } else if ( z === undefined ) {
-        this.len = x * 12 + y;
-    } else if ( z < 0 ) {
-        bad();
+    function feetToInches(feet) {
+        return feet * 12;
+    }
+
+    function yardsToInches(yards) {
+        return yards * 36;
+    }
+    
+    if ( ![yards, feet, inches].every(x => isValidInteger(x)) ) {
+        throw new Error("Length components must be non-negative integers.");
     } else {
-        this.len = x * 36 + y * 12 + z;
+        return new YFI(yardsToInches(yards) + feetToInches(feet) + inches);
     }
 }
 
@@ -64,7 +58,7 @@ YFI.prototype.constructor = YFI;
 Object.defineProperty(YFI.prototype, "constructor", {enumerable: false, configurable: false});
 
 YFI.prototype.toString = function() {
-    return `[yards: ${this.yards()} feet: ${this.feet()} inches: ${this.inches()}]`;
+    return `${this.constructor.name} [yards: ${this.yards()} feet: ${this.feet()} inches: ${this.inches()}]`;
 };
 
 YFI.prototype.length = function() {
@@ -91,14 +85,36 @@ YFI.prototype.add = function(obj) {
     }
 };
 
-YFI.add = function(obj1, obj2) {
-    if ( obj1 instanceof YFI ) {
-        return obj1.add(obj2);
-    } else if ( obj2 instanceof YFI ) {
-        return obj2.add(obj1);
+YFI.add = function(...objs) {
+    let zero = new YFI();
+
+    return objs.reduce((obj1, obj2) => {
+        if ( obj1 instanceof YFI ) {
+            return obj1.add(obj2);
+        } else if ( obj2 instanceof YFI ) {
+            return obj2.add(obj1);
+        } else {
+            return new YFI(obj1 + obj2);
+        }
+    }, zero);
+};
+
+YFI.prototype.equals = function(obj) {
+    if ( obj instanceof YFI ) {
+        return this.length() === obj.length();
     } else {
-        return new YFI(obj1 + obj2);
+        return this.length() === obj;
     }
 };
 
-    
+YFI.equals = function(obj, ...objs) {
+    return objs.every(elt => {
+        if ( obj instanceof YFI ) {
+            return obj.equals(elt);
+        } else if ( elt instanceof YFI ) {
+            return elt.equals(obj);
+        } else {
+            return obj === elt
+        }
+    });
+};

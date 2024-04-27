@@ -146,5 +146,5 @@ function counterTestSuite() {
                  testReset,
                  testRollover];
 
-    assert(tests.every(test => { console.log(test); return test(); }));
+    return tests.every(test => { console.log(test); return test(); });
 }
