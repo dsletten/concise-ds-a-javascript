@@ -30,7 +30,7 @@ function YFI(length = 0) {
     if ( length < 0 ) {
         throw new Error("Length must be non-negative.");
     } else {
-        this.len = length;
+        this.length = length;
     }
 }
 
@@ -58,30 +58,30 @@ YFI.prototype.constructor = YFI;
 Object.defineProperty(YFI.prototype, "constructor", {enumerable: false, configurable: false});
 
 YFI.prototype.toString = function() {
-    return `${this.constructor.name} [yards: ${this.yards()} feet: ${this.feet()} inches: ${this.inches()}]`;
+    return `${this.constructor.name} [yards: ${this.getYards()} feet: ${this.getFeet()} inches: ${this.getInches()}]`;
 };
 
-YFI.prototype.length = function() {
-    return this.len;
+YFI.prototype.getLength = function() {
+    return this.length;
 };
 
-YFI.prototype.inches = function() {
-    return this.length() % 12;
+YFI.prototype.getInches = function() {
+    return this.getLength() % 12;
 };
 
-YFI.prototype.feet = function() {
-    return Math.floor(this.length() / 12) % 3;
+YFI.prototype.getFeet = function() {
+    return Math.floor(this.getLength() / 12) % 3;
 };
 
-YFI.prototype.yards = function() {
-    return Math.floor(this.length() / 36);
+YFI.prototype.getYards = function() {
+    return Math.floor(this.getLength() / 36);
 };
 
 YFI.prototype.add = function(obj) {
     if ( obj instanceof YFI ) {
-        return new YFI(this.length() + obj.length());
+        return new YFI(this.getLength() + obj.getLength());
     } else {
-        return new YFI(this.length() + obj);
+        return new YFI(this.getLength() + obj);
     }
 };
 
@@ -101,9 +101,9 @@ YFI.add = function(...objs) {
 
 YFI.prototype.equals = function(obj) {
     if ( obj instanceof YFI ) {
-        return this.length() === obj.length();
+        return this.getLength() === obj.getLength();
     } else {
-        return this.length() === obj;
+        return this.getLength() === obj;
     }
 };
 

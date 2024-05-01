@@ -40,56 +40,56 @@ function testMakeYFI() {
     return true;
 }
 
-function testLength() {
-    assert(0 === YFI.makeYFI().length(), "Expected length of 0");
-    assert(1 === YFI.makeYFI({inches: 1}).length(), "Expected length of 1");
-    assert(12 === YFI.makeYFI({feet: 1}).length(), "Expected length of 12");
-    assert(36 === YFI.makeYFI({yards: 1}).length(), "Expected length of 36");
-    assert(49 === YFI.makeYFI({yards: 1, inches: 1, feet: 1}).length(), "Expected length of 49");
+function testGetLength() {
+    assert(0 === YFI.makeYFI().getLength(), "Expected length of 0");
+    assert(1 === YFI.makeYFI({inches: 1}).getLength(), "Expected length of 1");
+    assert(12 === YFI.makeYFI({feet: 1}).getLength(), "Expected length of 12");
+    assert(36 === YFI.makeYFI({yards: 1}).getLength(), "Expected length of 36");
+    assert(49 === YFI.makeYFI({yards: 1, inches: 1, feet: 1}).getLength(), "Expected length of 49");
     assert(100 === YFI.add(YFI.makeYFI({inches: 49}),
-                           YFI.makeYFI({inches: 51})).length(), "Expected length of 100");
+                           YFI.makeYFI({inches: 51})).getLength(), "Expected length of 100");
     assert(100 === YFI.add(YFI.makeYFI({inches: 49}),
-                           51).length(), "Expected length of 100");
+                           51).getLength(), "Expected length of 100");
     assert(100 === YFI.add(49,
-                           YFI.makeYFI({inches: 51})).length(), "Expected length of 100");
-    assert(100 === YFI.add(49, 51).length(), "Expected length of 100");
+                           YFI.makeYFI({inches: 51})).getLength(), "Expected length of 100");
+    assert(100 === YFI.add(49, 51).getLength(), "Expected length of 100");
 
     return true;
 }
 
-function testInches() {
-    assert(0 === YFI.makeYFI().inches(), "Expected 0 inches.");
-    assert(1 === YFI.makeYFI({inches: 1}).inches(), "Expected 1 inch.");
-    assert(0 === YFI.makeYFI({feet: 1}).inches(), "Expected 0 inches.");
-    assert(0 === YFI.makeYFI({yards: 1}).inches(), "Expected 0 inches.");
-    assert(1 === YFI.makeYFI({yards: 1, inches: 1, feet: 1}).inches(), "Expected 1 inch.");
+function testGetInches() {
+    assert(0 === YFI.makeYFI().getInches(), "Expected 0 inches.");
+    assert(1 === YFI.makeYFI({inches: 1}).getInches(), "Expected 1 inch.");
+    assert(0 === YFI.makeYFI({feet: 1}).getInches(), "Expected 0 inches.");
+    assert(0 === YFI.makeYFI({yards: 1}).getInches(), "Expected 0 inches.");
+    assert(1 === YFI.makeYFI({yards: 1, inches: 1, feet: 1}).getInches(), "Expected 1 inch.");
     assert(0 === YFI.add(YFI.makeYFI({inches: 8}),
-                         YFI.makeYFI({inches: 4})).inches(), "Expected 0 inches.");
+                         YFI.makeYFI({inches: 4})).getInches(), "Expected 0 inches.");
 
     return true;
 }
 
-function testFeet() {
-    assert(0 === YFI.makeYFI().feet(), "Expected 0 feet.");
-    assert(0 === YFI.makeYFI({inches: 1}).feet(), "Expected 0 feet.");
-    assert(1 === YFI.makeYFI({feet: 1}).feet(), "Expected 1 foot.");
-    assert(0 === YFI.makeYFI({yards: 1}).feet(), "Expected 0 feet.");
-    assert(1 === YFI.makeYFI({yards: 1, inches: 1, feet: 1}).feet(), "Expected 1 foot.");
+function testGetFeet() {
+    assert(0 === YFI.makeYFI().getFeet(), "Expected 0 feet.");
+    assert(0 === YFI.makeYFI({inches: 1}).getFeet(), "Expected 0 feet.");
+    assert(1 === YFI.makeYFI({feet: 1}).getFeet(), "Expected 1 foot.");
+    assert(0 === YFI.makeYFI({yards: 1}).getFeet(), "Expected 0 feet.");
+    assert(1 === YFI.makeYFI({yards: 1, inches: 1, feet: 1}).getFeet(), "Expected 1 foot.");
     assert(0 === YFI.add(YFI.makeYFI({inches: 16}),
-                         YFI.makeYFI({inches: 20})).feet(), "Expected 0 feet.");
+                         YFI.makeYFI({inches: 20})).getFeet(), "Expected 0 feet.");
 
     return true;
 }
 
-function testYards() {
-    assert(0 === YFI.makeYFI().yards(), "Expected 0 yards.");
-    assert(0 === YFI.makeYFI({inches: 1}).yards(), "Expected 0 yards.");
-    assert(0 === YFI.makeYFI({feet: 1}).yards(), "Expected 0 yards.");
-    assert(1 === YFI.makeYFI({yards: 1}).yards(), "Expected 1 yard.");
-    assert(1 === YFI.makeYFI({yards: 1, inches: 1, feet: 1}).yards(), "Expected 1 yard.");
+function testGetYards() {
+    assert(0 === YFI.makeYFI().getYards(), "Expected 0 yards.");
+    assert(0 === YFI.makeYFI({inches: 1}).getYards(), "Expected 0 yards.");
+    assert(0 === YFI.makeYFI({feet: 1}).getYards(), "Expected 0 yards.");
+    assert(1 === YFI.makeYFI({yards: 1}).getYards(), "Expected 1 yard.");
+    assert(1 === YFI.makeYFI({yards: 1, inches: 1, feet: 1}).getYards(), "Expected 1 yard.");
     assert(1 === YFI.add(YFI.makeYFI({inches: 12}),
                          YFI.makeYFI({inches: 12}),
-                         YFI.makeYFI({inches: 12})).yards(), "Expected 1 yard.");
+                         YFI.makeYFI({inches: 12})).getYards(), "Expected 1 yard.");
 
     return true;
 }
@@ -173,10 +173,10 @@ function testEquals() {
 
 function yfiTestSuite() {
     let tests = [testMakeYFI,
-                 testLength,
-                 testInches,
-                 testFeet,
-                 testYards,
+                 testGetLength,
+                 testGetInches,
+                 testGetFeet,
+                 testGetYards,
                  testAdd,
                  testEquals
                 ];
