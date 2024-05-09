@@ -5,7 +5,7 @@
 //
 //   Description
 //
-//   Started:           Sat Apr 20 18:00:37 2024
+//   Started:           Mon May  6 21:45:26 2024
 //   Modifications:
 //
 //   Purpose:
@@ -48,11 +48,6 @@ function testGetLength() {
     assert(49 === YFI.makeYFI({yards: 1, inches: 1, feet: 1}).getLength(), "Expected length of 49");
     assert(100 === YFI.add(YFI.makeYFI({inches: 49}),
                            YFI.makeYFI({inches: 51})).getLength(), "Expected length of 100");
-    assert(100 === YFI.add(YFI.makeYFI({inches: 49}),
-                           51).getLength(), "Expected length of 100");
-    assert(100 === YFI.add(49,
-                           YFI.makeYFI({inches: 51})).getLength(), "Expected length of 100");
-    assert(100 === YFI.add(49, 51).getLength(), "Expected length of 100");
 
     return true;
 }
@@ -96,22 +91,14 @@ function testGetYards() {
 
 function testAdd() {
     assert(YFI.add() instanceof YFI, "Identity element for addition should be returned.");
-    assert(YFI.add(1) instanceof YFI, "Unit should be returned.");
-    assert(YFI.equals(0, YFI.add()), "Identity element should equal 0.");
-    assert(YFI.equals(1, YFI.add(0, 1)), "Sum should have length 1.");
-    assert(YFI.equals(1,
-                      YFI.add(YFI.makeYFI(), YFI.makeYFI({inches: 1}))), "Sum should have length 1.");
+    assert(YFI.add(new YFI(1)) instanceof YFI, "Unit should be returned.");
+    assert(YFI.equals(new YFI(), YFI.add()), "Identity element should equal 0.");
 
     {
-        let a = 10;
-        let b = 20;
-        assert(YFI.equals(YFI.add(a, b), YFI.add(b, a)), "Addition should be commutative.");
-    }
+        let a = YFI.makeYFI({inches: 1});
 
-    {
-        let a = 20;
-        let b = YFI.makeYFI({inches: 30});
-        assert(YFI.equals(YFI.add(a, b), YFI.add(b, a)), "Addition should be commutative.");
+        assert(YFI.equals(a, YFI.add(YFI.makeYFI(), a)), "Sum should have length 1.");
+        assert(YFI.equals(a, YFI.add(a, YFI.makeYFI())), "Sum should have length 1.");
     }
 
     {
@@ -135,21 +122,23 @@ function testAdd() {
                           YFI.add(a, b, c)), "Addition should be associative.");
     }
 
-    assert(YFI.equals([...Array(10)].map((_,i) => i + 1).reduce((x, y) => x + y),
-                      YFI.add(...[...Array(10)].map((_,i) => i + 1)),
-                      YFI.add(...[...Array(10)].map((_,i) => new YFI(i+1)))),
+    assert([...Array(10)].map((_,i) => i + 1).reduce((x, y) => x + y) ===
+           YFI.add(...[...Array(10)].map((_,i) => new YFI(i+1))).getLength(),
            "Equal sums should be equal.");
 
     return true;
 }
 
 function testEquals() {
-    assert(YFI.equals(0), "A YFI is equal to itself.");
-    assert(YFI.equals(1, 1), "Equal integers are equal.");
-    assert(!YFI.equals(0, 1), "Unequal integers are not equal.");
+    assert(YFI.equals(new YFI()), "A YFI is equal to itself.");
+    assert(YFI.equals(new YFI(1), new YFI(1)), "Equal lengths are equal.");
+    assert(!YFI.equals(YFI.add(), new YFI(1)), "Unequal lengths are not equal.");
+    assert(YFI.equals(YFI.makeYFI({inches: 5}),
+                      YFI.add(YFI.makeYFI({inches: 2}), YFI.makeYFI({inches: 3}))),
+           "Equal YFIs are equal.");
 
     {
-        let a = 39;
+        let a = new YFI(20).add(new YFI(19));
         let b = YFI.makeYFI({inches: 39});
         let c = YFI.makeYFI({yards: 1, inches: 3});
 
@@ -160,13 +149,6 @@ function testEquals() {
                YFI.equals(c, a, b)  &&
                YFI.equals(c, b, a), "Equality is independent of order.");
     }
-
-    assert(YFI.equals(YFI.makeYFI({inches: 5}),
-                      YFI.add(2, 3),
-                      YFI.add(YFI.makeYFI({inches: 2}), YFI.makeYFI({inches: 3}))),
-           "Equal YFIs are equal.");
-               
-    assert(YFI.equals("foo", "foo"), "Bogus");
 
     return true;
 }

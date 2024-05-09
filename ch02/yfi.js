@@ -5,7 +5,7 @@
 //
 //   Description
 //
-//   Started:           Thu Jul 20 02:06:44 2023
+//   Started:           Mon May  6 21:45:18 2024
 //   Modifications:
 //
 //   Purpose:
@@ -77,44 +77,25 @@ YFI.prototype.getYards = function() {
     return Math.floor(this.getLength() / 36);
 };
 
-YFI.prototype.add = function(obj) {
-    if ( obj instanceof YFI ) {
-        return new YFI(this.getLength() + obj.getLength());
-    } else {
-        return new YFI(this.getLength() + obj);
-    }
+//
+//    The only reason to have both add() methods is to support the identity element
+//    behavior: YFI.add() => 0
+//    Can't do that with an instance method and no instance!
+//    
+YFI.prototype.add = function(yfi) {
+    return new YFI(this.getLength() + yfi.getLength());
 };
 
-YFI.add = function(...objs) {
+YFI.add = function(...yfis) {
     let zero = new YFI();
 
-    return objs.reduce((obj1, obj2) => {
-        if ( obj1 instanceof YFI ) {
-            return obj1.add(obj2);
-        } else if ( obj2 instanceof YFI ) {
-            return obj2.add(obj1);
-        } else {
-            return new YFI(obj1 + obj2);
-        }
-    }, zero);
+    return yfis.reduce((sum, yfi) => sum.add(yfi), zero);
 };
 
-YFI.prototype.equals = function(obj) {
-    if ( obj instanceof YFI ) {
-        return this.getLength() === obj.getLength();
-    } else {
-        return this.getLength() === obj;
-    }
+YFI.prototype.equals = function(yfi) {
+    return this.getLength() === yfi.getLength();
 };
 
-YFI.equals = function(obj, ...objs) {
-    return objs.every(elt => {
-        if ( obj instanceof YFI ) {
-            return obj.equals(elt);
-        } else if ( elt instanceof YFI ) {
-            return elt.equals(obj);
-        } else {
-            return obj === elt
-        }
-    });
+YFI.equals = function(yfi, ...yfis) {
+    return yfis.every(elt => yfi.equals(elt));
 };
