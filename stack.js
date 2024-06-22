@@ -35,7 +35,6 @@ Stack.prototype.constructor = Stack;
 Object.defineProperty(Stack.prototype, "constructor", {enumerable: false, configurable: false});
 
 //    Check type???
-//Stack.prototype.push = function() {
 Stack.prototype.push = function() {
     throw new Error("Stack does not implement push().");
 };
@@ -48,16 +47,16 @@ Stack.prototype.pop = function() {
     }
 };
 
+Stack.prototype.doPop = function() {
+    throw new Error("Stack does not implement doPop().");
+};
+
 Stack.prototype.peek = function() {
     if ( this.isEmpty() ) {
         throw new Error("Stack is empty.");
     } else {
         return this.doPeek();
     }
-};
-
-Stack.prototype.doPop = function() {
-    throw new Error("Stack does not implement doPop().");
 };
 
 Stack.prototype.doPeek = function() {
